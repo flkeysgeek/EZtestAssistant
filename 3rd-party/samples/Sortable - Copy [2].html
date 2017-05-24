@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<!-- saved from url=(0033)http://rubaxa.github.io/Sortable/ -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Sortable. No jQuery.</title>
+<style type="text/css">
+html, body {
+	margin: 0;
+	padding: 0;
+	font-size: 20px;
+	font-family: 'Roboto', sans-serif;
+}
+ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.container {
+	width: 80%;
+	margin: auto;
+	min-width: 1100px;
+	max-width: 1300px;
+	position: relative;
+}
+.block {
+	opacity: 1;
+	position: absolute;
+}
+.block__list {
+	padding: 20px 0;
+	max-width: 360px;
+	margin-top: -8px;
+	margin-left: 5px;
+	background-color: #fff;
+}
+.block__list li {
+	cursor: move;
+}
+.block__list_words li {
+	background-color: #fff;
+	padding: 10px 40px;
+}
+.sortable-ghost {
+	opacity: .2;
+}
+.block__list_words .sortable-ghost {
+	opacity: 0.4;
+	background-color: #F4E2C9;
+}
+.block__list_words li:first-letter {
+	text-transform: uppercase;
+}
+.block__list_tags {
+	padding-left: 30px;
+}
+.block__list_tags:after {
+	clear: both;
+	content: '';
+	display: block;
+}
+.block__list_tags li {
+	color: #fff;
+	float: left;
+	margin: 8px 20px 10px 0;
+	padding: 5px 10px;
+	min-width: 10px;
+	background-color: #5F9EDF;
+	text-align: center;
+}
+</style>
+<script type="application/javascript">
+function setup()
+{
+	var list = document.getElementById("foo");
+	Sortable.create(list, {
+		group: "words",
+		animation: 150,
+		store: {
+			get: function (sortable) {
+				var order = localStorage.getItem(sortable.options.group);
+				return order ? order.split('|') : [];
+			},
+			set: function (sortable) {
+				var order = sortable.toArray();
+				localStorage.setItem(sortable.options.group, order.join('|'));
+			}
+		},
+		onAdd: function (evt){ console.log('onAdd.foo:', [evt.item, evt.from]); },
+		onUpdate: function (evt){ 
+			console.log('onUpdate.foo:', [evt.item, evt.from]); },
+		onRemove: function (evt){ console.log('onRemove.foo:', [evt.item, evt.from]); },
+		onStart:function(evt){ 
+			console.log('onStart.foo:', [evt.item, evt.from]);},
+		onSort:function(evt){ console.log('onStart.foo:', [evt.item, evt.from]);},
+		onEnd: function(evt){ 
+			console.log('onEnd.foo:', [evt.item, evt.from]);
+		}
+	});
+}
+</script>
+</head>
+<body onLoad="setup()">
+
+<!-- Connected lists -->
+<div class="container" style="height: 520px">
+  <div data-force="30" class="layer block" style="left: 14.5%; top: 0; width: 37%">
+    <ul id="foo" class="block__list block__list_words">
+      <li>антон</li>
+      <li>краб</li>
+      <li>корм</li>
+      <li>сало</li>
+      <li>бегемот</li>
+      <li>железосталь</li>
+      <li>валик</li>
+      <li>кровать</li>
+    </ul>
+  </div>
+</div>
+<script src="Sortable_files/Sortable.js"></script> 
+
+<!-- highlight.js -->
+
+</body>
+</html>

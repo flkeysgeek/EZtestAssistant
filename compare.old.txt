@@ -1,0 +1,410 @@
+05:17:31 am -- [Object]: 
+   _filename: "EZbasic.js"
+   _folder: "Shared/EZ/js"
+   _functionName: "EZ.collapse"
+   _selectedList (Object):
+      : "Shared/EZ/js"
+      Shared/EZ/html: •blank•
+      Shared/EZ/js: "EZbasic.js"
+      Shared/EZ/js:EZadvanced.js: "EZ.mergeMessages"
+      Shared/EZ/js:EZbase.js: •blank•
+      Shared/EZ/js:EZbase_min.js: "EZ.clone"
+      Shared/EZ/js:EZbasic.js: "EZ.collapse"
+      Shared/EZ/js:EZcloneV3.js: "EZ.cloneV3.object"
+      Shared/EZ/js:EZdev.js: "EZ.dotName"
+      Shared/EZ/js:EZprototypes_only.js: "Array.prototype.remove"
+   fnLists (Object):
+      Shared/EZ/js (Object):
+         EASY.dom.js (Object):
+            functionList (Array) (length=0):
+               •no elements•
+            recent (Array) (length=0):
+               •no elements•
+            set (Object):
+               •no elements•
+            test_counts (Object):
+               •no elements•
+            timestamp: "01-20-2017 04:19:00 am"
+         EZ.deleteme.js (Object):
+            functionList (Array) (length=1):
+               •excluded•: "1 of 1 properties"
+            recent (Array) (length=0):
+               •no elements•
+            set (Object):
+               •no elements•
+            test_counts (Object):
+               •no elements•
+            timestamp: "01-19-2017 10:26:20 pm"
+         EZ.mergeMessages (Object):
+            functionList (Array) (length=1):
+               •excluded•: "1 of 1 properties"
+            recent (Array) (length=0):
+               •no elements•
+            test_counts (Object):
+               •no elements•
+            timestamp_functionList: 0
+         EZadvanced.js (Object):
+            buildSeconds: "0.734"
+            functionList (Array) (length=10):
+              [0]: "EZ.addClass"
+              [1]: "EZ.classAction"
+              [2]: "EZ.counts"
+              [3]: "EZ.file"
+              [4]: "EZ.filePlus"
+              [5]: "EZ.functions.getNameStackTest"
+              [6]: "EZ.getEl"
+              [7]: "EZ.mergeMessages"
+              [8]: "EZ.returnValue_testBridge"
+              [9]: "EZ.storeSet"
+            listStatus: "functions:(216) scripts:(10) lines:(6708)"
+            recent (Array) (length=1):
+              [0]: "EZ.mergeMessages"
+            resultsFolder (Object):
+               basefoldername: "testdata"
+               basefolderpath: "Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/"
+               contents: •blank•
+               drive: "C:"
+               extension: ".js"
+               filename: "EZadvanced.js"
+               filenameonly: "EZadvanced"
+               folder: "Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/"
+               fullpathname: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZadvanced.js"
+               host: •blank•
+               meta: •blank•
+               origin: •blank•
+               pathfilename: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZadvanced.js"
+               pathname: "/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZadvanced.js"
+               port: •blank•
+               protocol: "file:"
+               shortpathfilename: ".../testdata/js/EZadvanced.js"
+               size: 0
+               subfolder: "js/"
+               timestamp: •blank•
+               url: "http://localhost:8080/revize/dw.Configuration/Shared/EZ/testdata/js/EZadvanced.js"
+               version: "10-09-2016"
+            set (Object):
+               •no elements•
+            test_counts (Object):
+               •no elements•
+            timestamp: "01-19-2017 10:26:29 pm"
+         EZbase.js (Object):
+            functionList (Array) (length=22):
+               •excluded•: "22 of 22 properties"
+            recent (Array) (length=5):
+              [0]: "EZ.equals"
+              [1]: "EZ.getEl_basic"
+              [2]: "EZ.getAncestor"
+              [3]: "EZ.clone"
+              [4]: "EZ.collapse"
+            timestamp: "01-13-2017 02:37:21 am"
+            timestamp_functionList: "01-13-2017 02:37:21 am"
+         EZbase_min.js (Object):
+            callCounts (Object):
+               EZ.clone: 5
+               EZ.getAncestor: 4
+            functionList (Array) (length=18):
+               •excluded•: "18 of 18 properties"
+            linenos (Object):
+               EZ: 135
+               EZ.clone: •undefined•
+               EZ.collapse: 3220
+               EZ.get_basic: 2418
+               EZ.getAncestor: 3704
+               EZ.getAttributes: 3771
+               EZ.getEl_basic: 6183
+               EZ.getOpt: 2218
+               EZ.getType: 4124
+               EZ.merge: 4931
+               EZ.mergeAll: 5192
+               EZ.removeItems: 5379
+               EZ.s: 5539
+               EZ.set_basic: 2533
+               EZ.setOpt: 2295
+               EZ.stringify: 472
+               EZ.toArray: 5965
+               EZ.toInt: 6066
+            recent (Array) (length=2):
+              [0]: "EZ.clone"
+              [1]: "EZ.getAncestor"
+            timestamp: "08-15-2016 06:36:04 pm"
+            url: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/js/EZbase_min.js"
+         EZbasic.js (Object):
+            buildSeconds: "0.796"
+            functionList (Array) (length=27):
+              [0]: "EZ"
+              [1]: "EZ.clone"
+              [2]: "EZ.collapse"
+              [3]: "EZ.createTag"
+              [4]: "EZ.equals"
+              [5]: "EZ.equals.SCRIPT"
+              [6]: "EZ.event.trigger"
+              [7]: "EZ.getAncestor"
+              [8]: "EZ.getAttributes"
+              [9]: "EZ.getEl_basic"
+              [10]: "EZ.getOpt"
+              [11]: "EZ.getType"
+              [12]: "EZ.get_basic"
+              [13]: "EZ.merge"
+              [14]: "EZ.merge.all"
+              [15]: "EZ.merge.deep"
+              [16]: "EZ.message.waitArgs"
+              [17]: "EZ.options"
+              [18]: "EZ.removeItems"
+              [19]: "EZ.s"
+              [20]: "EZ.setOpt"
+              [21]: "EZ.set_basic"
+              [22]: "EZ.stringify"
+              [23]: "EZ.timer"
+              [24]: "EZ.toArray"
+              [25]: "EZ.toInt"
+              [26]: "Object.prototype.cloneObject"
+            listStatus: "functions:(371) scripts:(27) lines:(12626)"
+            recent (Array) (length=4):
+              [0]: "EZ.clone"
+              [1]: "EZ.collapse"
+              [2]: "EZ.createTag"
+              [3]: "EZ.equals.SCRIPT"
+               buildSeconds: •blank•
+               functionList (Array) (length=0):
+                  •no elements•
+               listStatus: •blank•
+               recent (Array) (length=0):
+                  •no elements•
+               resultsFolder: •blank•
+               test_counts (Object):
+                  •no elements•
+               timestamp: 0
+            resultsFolder (Object):
+               basefoldername: "testdata"
+               basefolderpath: "Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/"
+               contents: •blank•
+               drive: "C:"
+               extension: ".js"
+               filename: "EZbasic.js"
+               filenameonly: "EZbasic"
+               folder: "Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/"
+               fullpathname: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZbasic.js"
+               host: •blank•
+               meta: •blank•
+               origin: •blank•
+               pathfilename: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZbasic.js"
+               pathname: "/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZbasic.js"
+               port: •blank•
+               protocol: "file:"
+               shortpathfilename: ".../testdata/js/EZbasic.js"
+               size: 0
+               subfolder: "js/"
+               timestamp: •blank•
+               url: "http://localhost:8080/revize/dw.Configuration/Shared/EZ/testdata/js/EZbasic.js"
+               version: "10-09-2016"
+            set (Object):
+               •no elements•
+            test_counts (Object):
+               •no elements•
+            timestamp: "01-23-2017 01:07:01 am"
+         EZbasicUtils.js (Object):
+            callCounts (Object):
+               •no elements•
+            functionList (Array) (length=1):
+               •excluded•: "1 of 1 properties"
+            linenos (Object):
+               •no elements•
+            recent (Array) (length=0):
+               •no elements•
+            timestamp: "10-21-2015 09:14:40 pm"
+            url: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/js/EZbasicUtils.js"
+         EZcapture.js (Object):
+            callCounts (Object):
+               •no elements•
+            functionList (Array) (length=1):
+               •excluded•: "1 of 1 properties"
+            linenos (Object):
+               EZ.valueMap: 1546
+            linenos_timestamp: "11-19-2016 11:05:50 am"
+            recent (Array) (length=0):
+               •no elements•
+            timestamp: 0
+         EZchecklist.js (Object):
+            callCounts (Object):
+               •no elements•
+            functionList (Array) (length=0):
+               •no elements•
+            linenos (Object):
+               •no elements•
+            linenos_timestamp: "07-01-2015 12:10:36 am"
+            recent (Array) (length=0):
+               •no elements•
+            timestamp: 0
+         EZcloneV3.js (Object):
+            functionList (Array) (length=2):
+               •excluded•: "2 of 2 properties"
+            recent (Array) (length=1):
+              [0]: "EZ.cloneV3.object"
+            set (Object):
+               •no elements•
+            test_counts (Object):
+               •no elements•
+            timestamp: 0
+         EZcommon.js (Object):
+            callCounts (Object):
+               •no elements•
+            functionList (Array) (length=0):
+               •no elements•
+            linenos (Object):
+               •no elements•
+            linenos_timestamp: "11-13-2016 12:46:38 am"
+            recent (Array) (length=0):
+               •no elements•
+            timestamp: 0
+         EZcommon.revize.js (Object):
+            callCounts (Object):
+               •no elements•
+            functionList (Array) (length=0):
+               •no elements•
+            linenos (Object):
+               •no elements•
+            linenos_timestamp: "07-11-2015 04:19:34 am"
+            recent (Array) (length=0):
+               •no elements•
+            timestamp: 0
+         EZcommonXml.js (Object):
+            callCounts (Object):
+               •no elements•
+            functionList (Array) (length=1):
+               •excluded•: "1 of 1 properties"
+            linenos (Object):
+               •no elements•
+            recent (Array) (length=0):
+               •no elements•
+            timestamp: "06-30-2015 08:14:48 am"
+            url: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/js/EZcommonXml.js"
+         EZdev.js (Object):
+            buildSeconds: "0.611"
+            functionList (Array) (length=1):
+              [0]: "EZ.dotName"
+            listStatus: "functions:(96) scripts:(1) lines:(2604)"
+            recent (Array) (length=1):
+              [0]: "EZ.dotName"
+               buildSeconds: •blank•
+               functionList (Array) (length=0):
+                  •no elements•
+               listStatus: •blank•
+               recent (Array) (length=0):
+                  •no elements•
+               resultsFolder: •blank•
+               test_counts (Object):
+                  •no elements•
+               timestamp: 0
+            resultsFolder (Object):
+               basefoldername: "testdata"
+               basefolderpath: "Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/"
+               contents: •blank•
+               drive: "C:"
+               extension: ".js"
+               filename: "EZdev.js"
+               filenameonly: "EZdev"
+               folder: "Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/"
+               fullpathname: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZdev.js"
+               host: •blank•
+               meta: •blank•
+               origin: •blank•
+               pathfilename: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZdev.js"
+               pathname: "/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/testdata/js/EZdev.js"
+               port: •blank•
+               protocol: "file:"
+               shortpathfilename: ".../testdata/js/EZdev.js"
+               size: 0
+               subfolder: "js/"
+               timestamp: •blank•
+               url: "http://localhost:8080/revize/dw.Configuration/Shared/EZ/testdata/js/EZdev.js"
+               version: "10-09-2016"
+            set (Object):
+               •no elements•
+            test_counts (Object):
+               •no elements•
+            timestamp: "01-30-2017 06:04:42 pm"
+         EZprototypes_only.js (Object):
+            callCounts (Object):
+               •no elements•
+            functionList (Array) (length=47):
+               •excluded•: "47 of 47 properties"
+            linenos (Object):
+               Array.prototype.collapse: 473
+               Array.prototype.extract: 3175
+               Array.prototype.EZforEach: 870
+               Array.prototype.fill: 701
+               Array.prototype.find: 759
+               Array.prototype.findIndex: 803
+               Array.prototype.format: 1631
+               Array.prototype.formatStack: 1683
+               Array.prototype.includesPlus: 3800
+               Array.prototype.indexOf: 2505
+               Array.prototype.is: 2601
+               Array.prototype.joinWithPrefix: 2531
+               Array.prototype.joinWithPrefixAndSuffix: 2518
+               Array.prototype.joinWithSuffix: 2544
+               Array.prototype.remove: 3352
+               Array.prototype.removeDups: 3415
+               Array.prototype.sortPlus: 1365
+               Array.prototype.sortSlice: 3709
+               Array.prototype.swap: 3478
+               Array.prototype.toRanges: 1048
+               Error.prototype.format: 1698
+               Number.prototype.suffix: 124
+               Object.prototype.ov: 2776
+               Object.prototype.removeKeys: 3103
+               Object.prototype.slicePlus: 3544
+               String.prototype.clip: 145
+               String.prototype.contains: 3787
+               String.prototype.endsWith: 3739
+               String.prototype.format: 1808
+               String.prototype.formatStack: 1984
+               String.prototype.fromRanges: 962
+               String.prototype.includes: 3764
+               String.prototype.includesIgnoreCase: 3776
+               String.prototype.includesPlus: 3887
+               String.prototype.matchPlus: 2355
+               String.prototype.pad: 233
+               String.prototype.right: 3029
+               String.prototype.startsWith: 3911
+               String.prototype.toAbsoluteUrl: 4120
+               String.prototype.toSentenceCase: 4168
+               String.prototype.toTitleCase: 4197
+               String.prototype.trim: 3953
+               String.prototype.trimLeft: 3966
+               String.prototype.trimPlus: 4066
+               String.prototype.trimRight: 3977
+            recent (Array) (length=0):
+               •no elements•
+            timestamp: "01-06-2017 01:21:09 pm"
+            url: "C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Shared/EZ/js/EZprototypes_only.js"
+   folderInfo (Object):
+      Shared/EZ/html (Object):
+         filenameList (Array) (length=12):
+           [0]: "EZextractFunctions.js"
+           [1]: "EZtest_assistant_data.js"
+           [2]: "EZtest_assistant_run.js"
+           [3]: "EZtest_assistant_support.js"
+           [4]: "EZtest_assistant_tests.js"
+           [5]: "EZtest_assistant_variants.js"
+           [6]: "EZtestdata.js"
+           [7]: "EZtester.js"
+           [8]: "EZtrace.js"
+           [9]: "RZcompatibility.js"
+           [10]: "RZtest_assistant_support.js"
+           [11]: "deleteme.js"
+         recent (Array) (length=0):
+            •no elements•
+         url: "http://localhost:8080/revize/dw.Configuration/Shared/EZ/html/"
+      Shared/EZ/js (Object):
+         recent (Array) (length=3):
+           [0]: "EZbasic.js"
+           [1]: "EZdev.js"
+           [2]: "EZadvanced.js"
+         url: "http://localhost:8080/revize/dw.Configuration/Shared/EZ/js/"
+   recentTestList (Array) (length=3):
+     [0]: "EZ.mergeMessages 	 EZadvanced.js 	 Shared/EZ/js 	 01-19-2017"
+     [1]: "EZ.mergeMessages 	 EZadvanced.js 	 Shared/EZ/js 	 01-15-2017"
+     [2]: "EZ.mergeMessages 	 EZbasic.js 	 Shared/EZ/js 	 @ 01-13-2017"
+   recentTestListLimit: 5
+   timestamp: "2017-01-18T17:36:27.920Z"

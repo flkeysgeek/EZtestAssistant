@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!-- saved from url=(0033)http://rubaxa.github.io/Sortable/ -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Sortable. No jQuery.</title>
+<script type="text/javascript" src="../EZsortable.js"></script>
+<style type="text/css">
+ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.sortable-ghost {
+	opacity: 0.6;
+	padding: 8px;
+	border: 1px dashed #C00;
+	color: #FEFEC8;
+	background: #FEFEC8; 
+	width: 100%;
+
+}
+</style>
+<script type="application/javascript">
+function setup()
+{
+	var list = document.getElementById("foo");
+	sortable = EZsortable.create(list, {
+		group: 'dragable',
+		filter: ".ignore-elements",
+		animation: 150,
+		store: {
+			get: function (sortable) {
+				var order = localStorage.getItem(sortable.options.group);
+				return order ? order.split('|') : [];
+			},
+			set: function (sortable) {
+				var order = sortable.toArray();
+				localStorage.setItem(sortable.options.group, order.join('|'));
+			}
+		},
+		onAdd: function (evt){ console.log('onAdd.foo:', [evt.item, evt.from]); },
+		onUpdate: function (evt){ 
+			console.log('onUpdate.foo:', [evt.item, evt.from]); },
+		onRemove: function (evt){ console.log('onRemove.foo:', [evt.item, evt.from]); },
+		onStart:function(evt){ 
+			console.log('onStart.foo:', [evt.item, evt.from]);},
+		onSort:function(evt){ console.log('onStart.foo:', [evt.item, evt.from]);},
+		onEnd: function(evt){ 
+			console.log('onEnd.foo:', [evt.item, evt.from]);
+		}
+	});
+}
+</script>
+</head>
+<body onLoad="setup()">
+
+<!-- Connected lists -->
+<div>
+<ul id="foo" class="dragable">
+    <li>Pear</li>
+    <li>Apple</li>
+    <li>краб</li>
+    <li>корм</li>
+    <li>сало</li>
+    <li>бегемот</li>
+    <li>железосталь</li>
+    <li>валик</li>
+    <li>кровать</li>
+  </ul>
+</div>
+
+<!-- highlight.js -->
+
+</body>
+</html>

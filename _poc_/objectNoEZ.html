@@ -1,0 +1,1679 @@
+/*--------------------------------------------------------------------------------------------------
+Dreamweaver LINT global references and definitions  not used here
+--------------------------------------------------------------------------------------------------*/
+/*global 
+EZ, DWfile, 
+resetTests, quit,
+ready, setupTestScript,
+
+e:true, g:true, dw:true, f:true
+*/
+var e;			//global var for try/catch
+(function() {[	//global variables and functions defined but not used
+
+e, f, g, dw, DWfile ]});
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+/*--------------------------------------------------------------------------------------------------
+EZ.test.dataFile(key, options)			created as global EZtest_dataFile() Object as js file loads
+
+can be called to create unique EZtest_dataFile() Object for managing EZtest_assistant data files.
+
+Provides functions to load, save, create, delete or compare data files changes.
+
+update() function checkes if data has changed and optionally creates tooltip HTML showing summary
+of changes with link to winMerge for full comparison of data file changes.
+
+TODO:
+	-integrate savedResults history functionality for all managed files.
+--------------------------------------------------------------------------------------------------*/
+EZ.test.dataFile = (function _____EZtest_dataFile_____()
+{										//following global variables availible to all internal
+	var msg;							//and Object functions since the are all closures.
+	var options, data;	 				//options initialzed by _init() and constructor
+	
+	var managed_files = {};				//map of EZtest_dataFile instances
+	var defaultData = function(key)		//default data for each managed file
+	{										
+		var data = {							
+			key: key || '',
+			name: '',
+			value: '',
+			timestamp: '',
+			
+			compareData: {							
+				baseValue: '',
+				updatedValue: [],
+				formattedLog: []
+			},
+			tags: {
+				tooltipCode: '',
+				noSaveEl: '',
+			},
+			options: {}
+		}
+		return data;
+	}
+	var defaultOptions = function()			//default data for each EZtest_dataFile Object
+	{
+		return {
+			sortKeysDepth: 0,
+			tooltip: '', 					//was el ??
+			changesCount: '',
+			noSaveId: '',
+			name: '',						//optional long name (default is EZtest_dataFile key)
+			file: '',
+			eqOpts: {
+				showDiff:5, 
+				exclude: '',
+				//console: true,
+				//log: true,
+				ignore: 'objectType'
+			},
+			compare: {
+				formatter: 'EZtoString',
+				formatOpts: {
+				//	timestamp: false,
+					display_showSpaces: false,
+					display_maxline: "200",
+					spaces: "3",
+					sort: "true",
+					htmlformat: false,
+					maxdepth: "6",
+					maxobjects: "50"
+				},
+				exclude: '._filename, ._functionName, ._selectedList, timestamp',
+			}
+		}
+	}
+	/**_________________________________________________________________________________________________
+	 *
+	 *	return existing or new Object for managed dataFile identified by specified unique key.
+	 *	
+	 *	ARGUMENTS:		
+	 *		key			unique key associated with managed dataFile
+	 *		options		see defaultOptions above
+	 *					
+	 *	RETURNS:
+	 *		new or existing DATA Object for specified key
+	 *__________________________________________________________________________________________________
+	**/
+	var topContext;									//_init() set to ___ after calling below constructor
+	var ___ = function EZtest_dataFile(key, dataOpts)			
+	{
+		if (topContext === undefined) return this;	//called by _init()												
+		//===============================================================================================
+		// check for existing EZtest_dataFile Object
+		//===============================================================================================
+		if (!key) return undefined;					//key required
+		
+		var DATA = (key instanceof Object) ? key	//set DATA to existing Object
+				 : managed_files[key += '']
+		if (DATA)									//if existing Object...
+		{											//reset topContext Object specific global
+			msg = '';
+			data = topContext.__data__ = DATA.data;						
+			options = topContext.__options__ = data.options;				
+			topContext.__key__ = key;	
+			return DATA;				
+		}
+		//===============================================================================================
+		// create and setup new Object EZtest_dataFile using specified key and dataOpts
+		//===============================================================================================
+		if (this instanceof arguments.callee)		//if called as constructor, carry on
+		{
+			DATA = managed_files[key] = this;		//save dataFile Object and carry on
+			
+			for (var fn in topContext)				//bind Object functions	to new Object			
+			{										//prototype functions added by default
+				if (!DATA[fn] && typeof(topContext[fn]) == 'function')
+					DATA[fn] = topContext[fn].bind(topContext, DATA)
+			}
+		}
+		else if (!dataOpts) 						//if no options, return null -- probably...
+			return null;							//...if ((DATA = ___(DATA)) == null) return;
+		else										
+			return new ___(key, dataOpts);			//if NOT called as constructor, make is so	
+
+		data = DATA.data = defaultData(key);		//initialize data and options
+		options = data.options = EZ.options.call(dataOpts);
+		___(DATA);									//reset topContext closure variables
+		
+		DATA.migrate(options, defaultOptions());	//update data using specified options
+		data.tags.noSaveEl = options.noSaveId && EZ(options.noSaveId, null);
+		if (options.tooltip)
+		{
+			var el = data.tags.tooltip = EZ(options.tooltip, null);
+			data.name = el.getAttribute('data-name') || el.alt || el.id;
+			data.tags.tooltipCode = EZ('code', EZ.getAncestor(el,'tooltip'));
+		}
+		data.name = options.name || data.name || key;
+
+		data.tags.changesCount = EZ(options.changesCount, null);
+		options.compare.eqOpts = EZ.options(options.eqOpts, options.compare.eqOpts);
+		options.compare.eqOpts.name = [data.name];
+		options.compare.eqOpts.dotName = [data.key];
+
+		DATA.log('setup');
+		if (options.file) 
+			DATA.load();				//load data if file specified
+		else
+			DATA.compareReset('setup');
+		//==========================
+		return DATA;
+		//==========================
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	call when data loaded or saved -- updated title with timestamp if specified
+	 */
+	___.load = function ___load(DATA, file, defaultValue)
+	{
+		if ((DATA = ___(DATA)) == null) return;
+		
+		options.defaultValue = (defaultValue || options.defaultValue)
+		
+		data.file = data.file || EZ.filePlus(file || options.file);
+		var url = data.file.url; 
+		if (!url)
+		{
+			EZ.oops('data file url NOT specified');
+			DATA.compareReset(EZ.oops.message);
+			return;
+		}
+		//============================================================================
+		data.json = DWfile.read(url) || '{}';
+		var saved = eval('saved=' + data.json);				
+		//============================================================================
+		if (options.defaultValue)
+		{									//if defaultValue migrate via getValue()
+			data.value = saved;
+			saved = DATA.getValue(defaultValue)
+		}
+		DATA.setValue(saved);
+		DATA.compareReset('load');
+		return true;
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	call when data loaded or saved -- updated title with timestamp if specified
+	 */
+	___.log = function ___log(DATA, msg, timestamp)
+	{
+		if ((DATA = ___(DATA)) == null) return;
+		
+if (true) return msg;
+		var key = this.key;
+		
+		var stack = EZ.stack(arguments.callee)
+		var callerName = (stack.lines[2].formatStack()+'' || '');	//.trim();
+		var msg = 'setup ' + key.pad(12) 
+			+ ' [saved @ ' + EZ.format.dateTime(timestamp, 'today time') + '] ' 
+			+ (callerName || ''); 
+		EZ.log.call('saveData', msg)
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	sync obj top level properties with defaultValues -- missing added
+	 *	deletes any not in defaultValues (depricated)
+	 *
+	 *	EZ.options candidate
+	 */
+	___.prototype.migrate = function ___migrate(obj, defaultValues)
+	{
+		Object.keys(defaultValues).forEach(function(key)	//add missing properties
+		{
+			obj[key] = obj[key] ||  defaultValues[key];
+		});
+		var deleteKeys = Object.keys(obj).remove( Object.keys(defaultValues) );
+		deleteKeys.forEach(function(key)		
+		{
+			delete obj[key];								//delete depricated properties
+		});
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	call when data loaded or saved -- updated title with timestamp if specified
+	 */
+	___.log = function ___log(DATA, msg, timestamp)
+	{
+		if ((DATA = ___(DATA, false)) == null) return;
+		
+if (true) return;
+		var key = this.key;
+		
+		var stack = EZ.stack(arguments.callee)
+		var callerName = (stack.lines[2].formatStack()+'' || '');	//.trim();
+		var msg = 'setup ' + key.pad(12) 
+			+ ' [saved @ ' + EZ.format.dateTime(timestamp, 'today time') + '] ' 
+			+ (callerName || ''); 
+		EZ.log.call('saveData', msg)
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	call when data loaded or saved -- updated title with timestamp if specified
+	 */
+	___.setTitle = function ___setTitle(DATA, timestamp)
+	{
+		if ((DATA = ___(DATA)) == null) return;
+		
+		var prefix = '';
+		var why = data.why || data.noSaveWhy || '';
+		prefix = data.name.pad(19);	//props.id.pad(25)
+	
+		var msg = '';
+		if (!data.isLoaded)
+			return;
+			
+		else if (data.isSaved)							//set by setValue() when saved
+		{												
+			msg += ' file updated ';
+		}
+		else if (!data.isPending)
+			msg = ' saved '
+		//else if (data.isPending)						//isDataChanged() sets if called with why arg
+		//	msg += ' pending save ' + why;				//not cleared until saved
+		
+		//else if (data.isChanged)						//isDataChanged() sets if changed from saved
+		//	msg += ' NOT saved ' + why;					//clears if data restored to saved values
+
+	//	else if (EZ.test.app.state == 'safety')
+	//		msg += ' up-to-date: ';
+		
+		if (!quit.reload)									//update html if not reloading
+		{
+			var el = data.tags.tooltip;
+			EZ.addClass(el, 'pending', data.isPending);
+			if (data.isLoaded)
+				EZ.addClass(el, 'saved=5000', data.isSaved);
+			
+			var text = '';
+			if (data.isPending)
+			{
+				text = 'changes pending ' + why;
+				el.setAttribute('data-title-prefix', '');
+				el.setAttribute('data-title', '');
+			}
+
+			else if (timestamp == -1)
+				text = '';
+			
+			else if (timestamp !== undefined && timestamp != 'NA')
+				text = ' @ ' + EZ.formatDate(timestamp, 'today time')
+			
+			text = msg + text;
+			text = (text || '').trim()
+			if (text && el)
+				el.setAttribute('data-title-suffix', ' ' + text);
+		}
+		
+		msg = msg.trim();
+		if (msg && data.isLoaded)
+		{
+			msg = prefix + msg;
+			var state = EZ.test.app.state.wrap().pad(9);
+			var time = EZ.format.time('ms');
+			EZ.log.call('saveData', state, time, msg + ' ' + (data.name || ''));
+			msg = time.replace(/\s+/g, '') + ' ' + msg;
+		}
+		return msg;
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	
+	 */
+	___.getData = function ___getData(DATA)
+	{
+		if ((DATA = ___(DATA)) == null) return;
+		return data;	
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	
+	 */
+	___.getValue = function ___getValue(DATA, defaultValue)
+	{
+		if ((DATA = ___(DATA)) == null) return;
+		
+		defaultValue = defaultValue || options.defaultValue || null;
+		var value = data.value;
+		if (defaultValue != null)
+		{
+			if (value == null || (value instanceof Object) != (defaultValue instanceof Object))
+				data.value = defaultValue;
+			
+			else if (defaultValue instanceof Object)
+				this.migrate(value, defaultValue);
+		}
+		return
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	
+	 */
+	___.setValue = function ___setValue(DATA, value, timestamp)
+	{
+		if (value == null) return;
+		if ((DATA = ___(DATA)) == null) return;
+		
+		timestamp = timestamp || value.timestamp || 'NA';
+		data.value = value;
+		if (value instanceof Object)
+		{
+			data.compareData.saved = _clone(value);
+			data.compareData.saved_timestamp = timestamp;
+		}
+		data.isLoaded = true;
+		DATA.setTitle(timestamp);
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	___.compareReset = function ___compareReset(DATA, action)
+	{
+		if ((DATA = ___(DATA)) == null) return;
+		if (!data.tags.tooltipCode || !EZ.log.isActive('saveData', 'page'))
+			return;
+		
+		var title = 'changes to file ';
+		switch (action)
+		{
+			case 'setup': 	
+				title = 'no data available'
+				break;
+			case 'load': 	
+				title += 'saved ' + EZ.format.dateTime(data.timestamp, 'today time date')
+					   + ' (1st loaded)'
+				break;
+			case '1st': 	
+			case 'reset': 	
+			{
+				title += 'updated @ ' + EZ.format.time(data.timestamp, 'ms')
+				if (action == '1st')
+					title += ' (1st value)';
+				break;
+			}
+			default: title = 'message: ' + action;
+		}	
+		var tags = {
+			nodes: {
+				input: {
+					type: "image",
+					title: 'clear changes',
+					width: '16px',
+					height: '16px',
+					src: "../images/clear.png",
+					onclick: "window.EZ.test.dataFile.compareReset('clear')"
+				},
+				text: title
+			}
+		}
+		var node = EZ.createTag('em', tags);
+		//node.innerHTML = node.innerHHTML;
+		data.tags.tooltipCode.innerHTML = node.outerHTML;
+		data.compareData.updatedValue = [];
+		data.compareData.formattedLog = [];
+		data.compareData.baseValue = _clone(data.value)
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	___.compareUpdate = function ___compareUpdate(DATA, formattedLog, note)
+	{	
+		if ((DATA = ___(DATA)) == null) return;
+		
+		var codeTag = data.tags.tooltipCode;	
+		if (!codeTag || !EZ.log.isActive('saveData', 'page'))
+			return;
+			
+		if (formattedLog === undefined)
+		{
+			data.isUpdated = false;
+			if (EZ.equals(data.compareData.baseValue, data.value, options.compare.eqOpts))
+				return;
+			formattedLog = EZ.equals.formattedLog;
+			note = (typeof(data.isUpdated) == 'string') ? data.isUpdated
+														: note = note || '';
+		}
+		if (formattedLog === true)					//no prior data
+			return DATA.compareReset('1st');
+		
+		var node;
+		var timestamp = EZ.format.time(new Date(), 'ms');
+		if (!formattedLog && data.compareData.updatedValue.length)
+		{
+			node = document.createElement('div');
+			node.innerHTML = 'no change @ ' + timestamp;
+		}
+		else
+		{		
+			var clone = _clone(data.value);
+			data.compareData.baseValue = clone
+			data.compareData.updatedValue.push(clone);
+			data.compareData.formattedLog.push(formattedLog);
+			if (data.tags.changesCount)
+				EZ.set(data.tags.changesCount, data.compareData.updatedValue.length)
+			
+			var args = data.key.wrap("'") + ',' + data.compareData.updatedValue.length;
+			var tags = {
+				nodes: {
+					summary: {
+						styles: {
+							whiteSpace: 'nowrap',
+							fontWeight: 'bold',
+							marginTop: '5px'
+						},
+						nodes: {
+							input: {
+								type: "image",
+								title: 'full compare via winmerge',
+								src: "../images/compare.png",
+								onclick: "window.EZ.test.dataFile.compare(" + args + ")"
+							},
+							text: name + ' changes @ ' + timestamp + ' ' + note
+						}
+					},
+					div: {
+						class: 'pre',
+						nodes: {
+							text: formattedLog.join('\n') + '\n'
+						}
+					}
+				}
+			}
+			node = EZ.createTag('details', tags, null);
+			//node.onclick = window.EZ.event.cancel(event);
+
+		}
+		codeTag.appendChild(node);
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	___.compare = function ___compare(DATA)
+	{
+		if ((DATA = ___(DATA)) == null) return;
+	
+		var compareOpts = {
+			waitEl: data.tags.tooltip,
+			formatter: options.compare.formatter,
+			formatOpts: options.compare.formatOpts,
+			dl: data.key + ' @ ' + data.compareData.savedLast_timestamp,
+			dr: data.key + ' @ ' + data.compareData.saved_timestamp
+		}
+		EZ.compare(data.compareData.savedLast, data.compareData.saved, compareOpts);		
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	___.setValueChanged = function ___setValueChanged(DATA, note)
+	{	
+		if ((DATA = ___(DATA)) == null) return;
+		
+		data.isUpdated = note || true;
+		if (!data.compareData.baseValue)
+			data.compareData.baseValue = _clone(data.value);
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	___.isValueChanged = function ___isValueChanged(DATA, updatedValue)
+	{
+		if ((DATA = ___(DATA)) == null) return;
+		
+		var priorValue = data.value;
+		if (updatedValue)								//initialize prior value
+			data.compareData.baseValue = data.compareData.baseValue || data.value;
+		else
+		{
+			priorValue = data.compareData.baseValue;
+			updatedValue = data.value;
+		}
+		if (!priorValue || data.isChanged)
+			return true;
+			
+		var formattedLog = __isEqual(priorValue, updatedValue);
+		if (!formattedLog)
+			return false;
+		
+		return formattedLog;
+		//__________________________________________________________________________________________________
+		/**
+		 *	
+		 */
+		function __isEqual(value, updatedValue)
+		{
+			var eqOpts = options.eqOpts;
+			eqOpts.name = [data.name];
+			eqOpts.dotName = [data.key];
+			
+			if (false								//TODO: option
+			&& value.timestamp && updatedValue.timestamp 
+			&& value.timestamp == updatedValue.timestamp)
+				return '';
+			
+			var isEq = window.EZ.equals(value, updatedValue, eqOpts);
+			return (isEq) ? '' :  EZ.equals.formattedLog;
+		}
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	Only called if data changed 
+	 */
+	function __canSave()
+	{
+		var why = '';
+		while (EZ.test.app.state != 'reload' && !quit.reload)
+		{
+			if (EZ.debug.isSaveSuspended())
+			{
+				why = 'all saves suspended';
+				break;
+			}
+			var noSaveId = data.noSaveId;
+			if (typeof(noSaveId) != 'boolean')
+			{
+				var fieldValues = EZ.get(EZ('nosave', true)).valueMap;
+				if (noSaveId in fieldValues)
+				{
+					//if (fieldValues.debugNoSaveData)
+					{
+						if (fieldValues[noSaveId])
+						{
+							why = 'No Save checked ';	// + noSaveId + ' not';
+							break;
+						}
+					}
+				}
+				else if (data.noSaveEl && !data.noSaveEl.checked)
+				{
+					why = noSaveId + ' not checked';
+					break;
+				}
+			}
+			break;
+		}
+		data.noSaveWhy = why;
+		return data.canSave = !why;
+	}
+	//________________________________________________________________________________________
+	/**
+	 *
+	**/
+	___.save = function ___save(DATA, value, timestamp)
+	{	
+		if ((DATA = ___(DATA)) == null) return;
+		
+		value = value || data.value;										
+		timestamp = timestamp || value.timestamp || data.timestamp || new Date();
+		timestamp = EZ.format.dateTime(timestamp);
+		
+		if (__canSave())
+		{
+			//if (options.sortKeysDepth)
+			//	DATA.sortKeys(data.value, options.sortKeysDepth);
+			
+			//=======================================================================
+			DWfile.write(data.file.url, EZ.stringify(data.value, '*'));
+			//=======================================================================
+			data.isPending = '';
+			data.isSaved = true;
+			DATA.setTitle(timestamp);
+		}
+	}
+	//________________________________________________________________________________________
+	/**
+	 *
+	**/
+	___.updateValue = function ___updateValue(DATA, value, timestamp, note)
+	{	
+		if ((DATA = ___(DATA)) == null) return;
+
+		value = value || data.value;										
+		
+		var isUpdated = data.isUpdated;
+		
+		if (data.compareData.baseValue)					//base value compare
+			DATA.compareUpdate(undefined, note);				
+		
+		var formattedLog ;
+		if (!isUpdated)
+			isUpdated = formattedLog = DATA.isValueChanged(value);	
+		
+		if (isUpdated)
+		{
+			DATA.save(value, timestamp);
+		
+			if (!data.compareData.baseValue)
+				DATA.compareUpdate(formattedLog);
+		}
+		return isUpdated;
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	sync obj top level properties with defaultValues -- missing added
+	 *	deletes any not in defaultValues (depricated)
+	 *
+	 *	EZ.options candidate
+	 */
+	___.prototype.migrate = function ___migrate(obj, defaultValues)
+	{
+		Object.keys(defaultValues).forEach(function(key)	//add missing properties
+		{
+			obj[key] = obj[key] ||  defaultValues[key];
+		});
+		var deleteKeys = Object.keys(obj).remove( Object.keys(defaultValues) );
+		deleteKeys.forEach(function(key)		
+		{
+			delete obj[key];								//delete depricated properties
+		});
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	function _clone(obj)
+	{
+		return EZ.test.cloneHow(obj);
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	TODO:	
+	 *		sortKeysDepth
+	 *		originally created for mru -- needs recursive refactor
+	 *
+	 *	EZ.sortKeys refactor candidate
+	**/
+	___.prototype.sortKeys = function ___sortKeys(obj /*, sortKeysDepth */)
+	{
+		[].sortPlus.call(obj);				//sort top 3 levels - debug convience
+		Object.keys(obj).forEach(function(key) 
+		{ 
+			if (obj[key] instanceof Array && !(obj[key] instanceof Object)) return;
+			[].sortPlus.call(obj[key]) 
+			var o = obj[key];
+			Object.keys(o).forEach(function(key) {
+				if (o[key] instanceof Array && !(o[key] instanceof Object)) return;
+				[].sortPlus.call(o[key]) 
+				
+				var oo = o[key];
+				Object.keys(oo).forEach(function(key) {
+					if (oo[key] instanceof Array && !(oo[key] instanceof Object)) return;
+					if (key === '') 
+						delete oo[key];
+					else
+						[].sortPlus.call(oo[key]) 
+				});
+			});
+		});
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	creates topContext Object (pseudo static) -- valid constructor or can call a default function. 
+	 */
+	var _init = function _init()
+	{												//if Object properties or prototype function
+		var fn = new ___();							//get new Object and copy to topContext
+		for (var key in fn)							
+			___[key] = fn[key];				
+		topContext = ___;							//set after constructor called _inti()
+		
+		options = defaultOptions(); 				//create default options for topContext
+													
+		topContext.__options__ = options 			//debugger convenience
+		topContext.__managed_files__ = managed_files;
+		/*
+		EZ.event.add(window, 'onload', function()	//initialization requiring DOM 
+		{											
+		});	
+		*/
+		return topContext;							//return updated topContext
+	}
+	//==================================================================================================
+	return _init();									//create and return global "static" Object
+})();
+
+/*--------------------------------------------------------------------------------------------------
+EZ.test.mruTests(options) -- instanciated as "pseudo static" EZmruTests class when script loaded.
+
+Subsequently called by setup() to load most recent selections and populate Test select lists.
+
+ARGUMENTS:		
+	options		(optional) Object containing one or more of the following properties:
+					--currently none--
+
+
+EZ.test.mruTests.folderSelected()	called by folderList.onChange() -- and mruTests.load()
+EZ.test.mruTests.fileSelected()		called by fileList.onChange()
+EZ.test.mruTests.functionSelected()	called by functionList.onChange()
+
+EZ.test.mruTests.setTestCallCount()	called by setupTestScriptFinish() if / after test test loaded
+
+TODO:
+--------------------------------------------------------------------------------------------------*/
+EZ.test.mruTests = (function _____EZtest_mruTests_____()
+{										//following global variables availible to all internal
+	var topContext;						//and Object functions since the are all closures.
+	
+	var options			 				//options initialzed by _init()
+	//var data = {};
+									
+	var mruDATA;						//convenience reference for EZ.test.dataFile mruTests Object
+	var folderList, fileList, fnList;	//initialized by EZ.mruTests.setup()
+	var folder, filename, functionName;
+	var message = '';
+	
+	var defaultOptions = function() 
+	{
+		return {
+			mruFile: null,
+			state: 'init',
+			excludeList: '',
+			foldersOpened: [],
+			dataFile: {
+				name: 'recent selections',	//mruTest.js
+				sortKeysDepth: 4,
+				tooltip: 'mruChanges',
+				changesCount: 'mruChangesCount',
+				key: 'mru',
+				noSaveId: 'debugNoSave_mruTests'
+			},
+			listSize: 15,
+			recentLimit: 10
+
+		}
+	}
+	var mru = {};						//all saved data	
+	var defaultData = function() 
+	{
+		return {
+			_folder: '',
+			_filename: '',
+			_functionName: '',
+			_selectedList:{},			//last selected file or fn for each folder or folder:filename
+										//...folder used for last selected folder
+			folderInfo: {},				//for each folder: most recently selected files
+			fnLists: {},				//for each filepath: function dropdown (value/text/selectrf) 
+										//					 linenos, recent, timestamp, url
+			timestamp: 'NA',
+			
+			recentTestList: [],			//most recent test functions
+			recentTestListLimit: 10,	//...not deleted when above mru recent selections cleared...
+			keep: ['recentTestList', 'recentTestListLimit']
+		}
+	}
+	var FolderInfoDefault = function() 	
+	{									//folderInfo[folder]
+		return {						//folders properties for each folder
+			filenameList: [],
+			recent: [],
+			url: ''
+		}
+	}
+	var fnInfoDefaul = function() 
+	{									//fnInfo[folder][filename]
+		return {						//test script properties for each script file
+			functionList: [],
+			recent:	[],
+			test_counts: {},
+			timestamp: 0
+		}
+	}
+	
+	//__________________________________________________________________________________________________
+	/**
+	 *	constructor for _init() -- if not called as constructor... "this" is EZ.test
+		if (this instanceof arguments.callee)	//called as constructor -- return new Object
+	 */
+	var ___ = function EZmruTests()
+	{
+		if (topContext === undefined)			//called by _init()
+			return this;									
+		
+		EZ.timer('screen update',true);			//initialize global variables requiring document DOM
+		
+		folderList = EZ('folderList');
+		fileList = EZ('fileList');
+		fnList = EZ('functionList');
+		
+		options.filePrompt = fileList.options[0].text,
+		options.functionPrompt = fnList.options[0].text
+//debugger;		
+		options.mruFile = EZ.filePlus(EZ.test.config.testdataFolder, 'EZtestAssistant.MRUtests.js'),
+		options.dataFile.file = options.mruFile;
+		
+		mruDATA = new EZ.test.dataFile(options.dataFile.key, options.dataFile);
+		mru = mruDATA.data.value	//mruDATA.getValue();					//get mruDATA.value Object
+		
+		g.mru =	topContext.__mru__ = mru;			//debugger convenience
+		g.mruDATA = topContext.__mruDATA__ = mruDATA;
+
+		_displayRecentRunTest();
+		setTimeout("EZ.test.mruTests.folderSelected()", 0);
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	save MRUtests.js
+		var isUpdated = mruDATA.updateValue(mru);
+		if (isUpdated)
+			message += ' mru data updated';
+	**/
+	___.prototype.save = function ___save()
+	{
+		var callerName = arguments.callee.caller.arguments.callee.caller.name;
+		mruDATA.updateValue(mru, undefined, callerName);
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	dispatcher
+	**/
+	___.prototype.callback = function __callback(url, isExternalFile)
+	{
+		this.save();
+		if (message)					
+		{
+			var msg = message;
+			setTimeout(function() {ready(msg)}, 0);
+			return message = '';
+		}
+
+		if (!filename || filename == '*')
+			return setTimeout("EZ.test.mruTests.folderSelected()", 0);
+	
+		if (!functionName || functionName == '*')									
+			return setTimeout("EZ.test.mruTests.fileSelected()", 0);
+	
+		if (url === undefined)
+			return setTimeout("EZ.test.mruTests.functionSelected()", 0);
+		
+		return setTimeout(function() { setupTestScript(functionName, url, isExternalFile) }, 0);
+	}
+	//======================================================================================[1]
+	/**
+	 *	populate or update fileList dropdown -- initially called by setup subsequently
+	 *	called BEFORE filename selected from folderSelected() when folder selected.
+	**/
+	___.prototype.folderSelected = function ___folderSelected()
+	{		
+		folder = EZ.get(folderList);
+		var folderMRU = _getMRU();
+		if (options.state == 'init')
+		{
+			options.state = 'folder';
+			if (!folder)
+				folder = folderMRU;
+			if (folder)
+				EZ.set(folderList, folder);
+		}
+		_setMRU(folder);
+		var folderInfo = _getFolderInfo(folder);	
+		//...........................................................
+		if (!folder || folder != folderMRU)
+		{				
+			filename = ''
+			_dimList(fileList);
+			_dimList(fnList);
+		}
+		//...........................................................		
+		do
+		{	
+			if (!folder)
+			{
+				folderList.selectedIndex = -1;
+				message = 'select folder';
+				break;
+			}
+			var filenameMRU = _getMRU(folder);		
+			
+			if (filename == '*')					
+			{
+				folderInfo.set('recent', []);
+				folderInfo.set('filenameList', folderInfo.filenameList.slice().sortPlus());
+				
+				filename = filenameMRU;					//restore filename
+				message = 'recent file selections cleared';
+				_dimList(fileList);
+			}
+			if (filename != filenameMRU)
+				_dimList(fnList);
+			
+			if (!filename && filenameMRU)
+				filename = filenameMRU;		
+			
+			if (fileList.selectedIndex == -1)	//.options.length <= _getOffset(fileList))
+			{
+				var items = folderInfo.filenameList.remove();
+				if (!items || !options.foldersOpened.includes(folder))
+				{											//rebuild filename list
+					options.foldersOpened.push(folder);
+					items = DWfile.listFolder(EZ.constant.configPath + folder + '/*.js');	
+					items = _getExcludeList(items);
+					if (!items)								//invalid RegExp
+						break;								
+					items.sortPlus();						//case-insensitive sort
+					folderInfo.set('filenameList', items, folderInfo.filenameList);
+				}
+				folderInfo.set('filenameList', items);				
+				_displayDropdown(fileList, folderInfo.filenameList, filename, {sep: folderInfo.recent.length});
+			}
+			
+			//================================================================================
+			var opts = {
+				itemList: folderInfo.filenameList,
+				recentList: folderInfo.recent,
+				selectedItem: filename
+			}
+			var recentList = _updateDisplay(fileList, opts)		
+			folderInfo.set('recent', recentList, folderInfo.recent);
+			//================================================================================			
+			
+			if (fileList.selectedIndex == -1)			//file no longer exits
+				filename = '';							
+			if (filename)								//defer updating selected if blank
+				_setMRU(folder, filename);
+			else
+			{
+				fileList.selectedIndex = -1;
+				message = 'select file'	;
+			}
+		}
+		while (false)
+		this.callback();
+	}
+	//======================================================================================[2]
+	/**
+	 *	populate or update functions dropdown -- called from fileSelected() when file clicked
+	 *	or auto selected when most recently selected file for current folder is known.
+	 *	
+	 *	moves selected filename to top, updates recentList then populates functionList and
+	 *	auto selects function most recently selected for filename.
+	**/
+	___.prototype.fileSelected = function ___fileSelected()	
+	{													
+		filename = EZ.get(fileList);				  //--------------------------------------\\
+		if (filename)								 //----- update files dropdown / data -----\\	
+			_setMRU(folder, filename);				//------------------------------------------\\ 	
+		//========================================================================================
+		var folderInfo = _getFolderInfo(folder);
+		var opts = {
+			itemList: folderInfo.filenameList,
+			recentList: folderInfo.recent,
+			selectedItem: filename,
+			callback_after: fileSelected_after
+		}
+		var recentList = _updateDisplay(fileList, opts)		
+		folderInfo.set('recent', recentList, folderInfo.recent);
+		this.callback();
+		//========================================================================================
+													  //---------------------------------------------\\
+		function fileSelected_after()				 //----- always re-display function dropdown -----\\
+		{											//-------------------------------------------------\\
+			var fnInfo = _getFileInfo(folder, filename);
+			var functionNameMRU = _getMRU(folder, filename);	
+			if (functionName == '*')
+			{										//clear recent -- retains current selection
+				fnInfo.set('recent', []);
+				functionName = functionNameMRU;		//restore filename
+				message = 'recent function selections cleared';
+				_dimList(fnList);
+			}
+			else if (functionName != functionNameMRU)
+				_dimList(fnList);
+													//fn must match selected folder / filename -- NEVER
+			functionName = functionNameMRU;			//use selected function on file change should be cleared
+			
+			if (fnInfo.functionList[0] instanceof Array)
+				return ___.buildFunctionList(fnInfo);	
+				
+			return ___.displayFunctionList(fnInfo);	//otherwise call displayFunctionList() directly
+		}
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *
+	 */
+	___.updateDisplay = function ___updateDisplay(list, opts)
+	{
+		var action = '';									//defined if redisplay required
+		var items = opts.itemList.remove(['', '-', '*']).removeDup()
+		var recentList = opts.recentList.extract(items);
+		var selectedItem = opts.selectedItem;
+		
+		var idx = recentList.indexOf(selectedItem);
+		if (idx > 0)
+			recentList.splice(idx,1);
+		if (selectedItem)
+			recentList.unshift(selectedItem);
+		
+		if (recentList.length > options.recentLimit)		//if over-limit, re-display
+		{
+			recentList.length = options.recentLimit;
+			action = 'recentLimit';
+		}
+		items = recentList.concat(items.remove(recentList));
+		items.recentList = recentList;
+		
+		var listOptions = {
+			sep: recentList.length,
+			size: options.listSize
+		}
+		
+		while (list)
+		{
+			var dashOpt = list.EZ('listOptionsSeparator', null);
+			if (dashOpt)
+				EZ.removeClass(dashOpt, 'listOptionsSeparator');
+			
+			if (!items.length && !recentList.length)		//if no items, display empty prompt show
+			{												//...empty prompt not already showing
+				if (list.options.length != 1 || list.options[0].value != '-')
+					EZ.displayDropdown(list, items)
+				break;
+			}
+			
+			var offset = __getOffset(list);
+			var offsetNeeded = (recentList && recentList.length) ? 1 : 0;
+			if (list.options.length <= offset)	
+			{
+				action = 'empty';			
+			}
+															//TODO: isVisiabl or scroll into view
+			if (list.selectedIndex >= (options.listSize-2))	//if list scrolled, clear and rebuild to
+			{												//scroll to 1st option otherwise list
+				items.reset = true;	
+				break;	
+			}
+			if (offset != offsetNeeded)						//redisplay to show or hide heading
+			{
+				action = (offsetNeeded ? 'on' : '') + ' heading ';			
+				break;				
+			}
+			if (!selectedItem)
+			{
+				list.selectedIndex = -1;
+				break;
+			}
+			if (list.selectedIndex == -1 && selectedItem)
+				EZ.set(list, selectedItem);	
+			
+			if (list.selectedIndex != offset)				//1st option is (optional) heading
+			{												//make selected item not 2nd option,
+				//--------------------------------------------------------
+				EZ.selectOption.move(list, list.selectedIndex, offset);
+				//--------------------------------------------------------
+				list.size = Math.min(options.listSize, list.options.length);
+			}
+			else if (list.options.length > recentList.length)	//add separator class if any items
+			{													//... after recent items
+				var dashIdx = recentList.length + offset;
+				if (dashIdx < list.options.length)
+					EZ.addClass(list.options[dashIdx], 'listOptionsSeparator');	
+			}
+			break;
+		}
+		
+		recentList.items = items;
+		recentList.options = opts;
+		recentList.listOptions;
+		recentList.action = action;
+
+		
+		if (action)
+		{
+			if (opts.callback_before)
+				recentList.items = opts.callback_before(items, action);
+			return _displayDropdown();
+		}
+		//======================
+		return recentList;
+		//======================
+		//________________________________________________________________________________________
+		/**
+		 *	
+		 */
+		function _updateDisplay_callback(list, items, selected, options)
+		{
+		}
+		//________________________________________________________________________________________
+		/**
+		 *	
+		 */
+		function _displayDropdown(list, items, selected, options)
+		{
+			if (action == 'reset')
+			{
+				action = 'callback';
+				EZ.clearList(list)							//scrolls to 2nd option and heading not visible
+				
+				setTimeout(function() { _displayDropdown(list, items, selectedItem, listOptions) }, 250);
+				return recentList;
+			}
+
+
+
+
+			options = options || {};
+			if (!options.sep)
+			{
+				EZ.clearList(list);
+				EZ.removeClass(list, 'highlight', items.length);
+				EZ.displayDropdown(list, items, selected, {size:15, noclear:true});
+			}
+			else
+			{
+				list.EZfield.resetInitialAttribute('options');
+				EZ.addClass(list, ['highlight', 'recent']);
+				EZ.displayDropdown(list, items, selected, {size:15, noclear:true, sep:options.sep+1});
+																	//update recent heading text
+			}
+			EZ.removeClass(list, ['invisible', 'dimMore']);
+		
+			if (options.sep)
+				list.options[0].text = EZ.s(list.options[0].text, options.sep) + ' on top';
+			
+			if (options.timestamp)
+			{
+				var text = EZ.format.dateTime(options.timestamp, 'today time date -seconds').trim();
+				text = (text.includes('-')) ? text : ' @ ' + text;
+			}
+			
+			if (action = 'callback' && opts.callback)
+				opts.callback();
+		}
+		//______________________________________________________________________________________________
+		/**
+		 *	
+		 */
+		function __getOffset(list)
+		{
+			if (list.options.length === 0)
+				EZ.field(list, true).resetInitialAttribute('options');
+			var offset = (list.options.length === 0) ? 0
+					   : list.options[0].value.startsWith('*') ? 1 : 0;
+			return offset;		
+		}
+	}
+		//______________________________________________________________________________________________
+	/**
+	 *
+	**/
+	function _functionListItems(items, action, opts)
+	{		
+		var counts = opts.counts;
+		var itemList = [];
+		items.forEach(function(value)				//expand each name to Array of the form:
+		{											//	 [text, value, selected, className]
+			var text = EZ.SPACE + value;
+			var className = '';
+			if (value.endsWith('.SCRIPT'))			//external script
+			{
+				text = EZ.DOT + value.clip(7);				//prepend DOT to value
+				className = 'external';				//...and set className
+			}
+			var cnt = counts[value] || '';
+			text += cnt.wrap('()');
+			
+			itemList.push( [text, value, '', className] );
+		});
+		return itemList;
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	___.displayFunctionList = function ___displayFunctionList(fnInfo, url)
+	{													
+		/**
+		 *
+		**/
+		var callback_after = function()
+		{		
+			if (fnList.selectedIndex == -1 && functionName)
+				EZ.set(fnList, functionName);
+			
+			if (fnList.selectedIndex == -1)				//fn no longer avail, safety for unexpected
+				functionName = '';			
+			
+			if (functionName)
+			{					
+				_setMRU(folder, filename, functionName);
+				url = _getFolderInfo(folder).url + filename; 
+			}
+			else
+			{
+				fnList.selectedIndex = -1;	
+				message = 'select function'	;
+			}
+			this.callback(url);							//script setup if url defined
+		}
+		//==================================================================================
+		var opts = {
+			itemList: fnInfo.functionList,
+			recentList: fnInfo.recent,
+			selectedItem: functionName,
+			callback_before: _functionListItems,
+			callback_after: callback_after
+		}
+		var recentList = _updateDisplay(fnList, opts)		
+		fnInfo.set('recent', recentList, fnInfo.recent);
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *
+	 */
+	___.buildFunctionList = function ___buildFunctionList(fnInfo, url)
+	{
+		EZ.addClass(fnList, 'dimMore');
+		if (EZ.message.wait('building list', 'functionListWait', this)) 
+			return;							
+		
+		var functionList = [];
+		//var externalFiles = {};
+		var test_counts = {};
+		
+		//=============================================================================
+		var filePath = folder.replace(/.*\/(.*)/, '$1') + '/' + filename;
+		var scriptsFolder = EZ.constant.configPath + EZ.test.config.testdataFolder + filePath;
+		var scriptFileList = DWfile.listFolder(scriptsFolder + '/*.SCRIPT.js');
+		//=============================================================================
+		scriptFileList.forEach(function(name)		//find external test scripts
+		{												
+			var fileSize = 1;						//TODO: if not empty file
+			if (!fileSize) return;
+													//keep ".SCRIPT" suffix
+			var value = name.clip(3); 				//but drop: ".js" file ext
+			functionList.push(value);				
+			if (fnInfo.test_counts[value])
+				test_counts[value] = fnInfo.test_counts[value];
+		});
+		
+		//=============================================================================
+		var scriptFile = EZ.filePlus(folder + '/' + filename);
+		var script = DWfile.read(scriptFile.url);
+		//=============================================================================		
+		var scriptFunctionList = EZ.getFunctionList(script);	
+		scriptFunctionList.forEach(function(fn)			
+		{												//find embedded test scripts		
+			if (fn.name.right(5).toLowerCase() == '.test')
+			{
+				var value = fn.name.clip(5);			//drop: ".test" from fn name
+				functionList.push(value);
+			}
+		});
+		functionList.sortPlus();
+		
+		fnInfo.set('recent', fnInfo.recent.extract(functionList));
+		
+		fnInfo.set('functionList', functionList);
+		fnInfo.set('test_counts', test_counts);
+		fnInfo.set('timestamp', EZ.format.dateTime());
+		___.displayFunctionList(fnInfo, url);
+		
+//		EZ(list.id+'Refresh').setAttribute('data-title-suffix', text);
+//		EZ.addClass(EZ.el, 'show=5000', options.refresh);
+		
+	}
+	//======================================================================================[3]
+	/**
+	 *	called after function selected from functionSelected()
+	 *	
+	 *	update selectedList 
+	 *	update recent (mru data and dropdown)
+	 *	update lineno
+	**/
+	___.prototype.functionSelected = function ___functionSelected()
+	{													
+		functionName = EZ.get(fnList);
+		var url = _getFolderInfo(folder).url + filename; 
+		//========================================================================================
+		var fnInfo = _getFileInfo(folder, filename);
+		var opts = {
+			itemList: fnInfo.functionList,
+			recentList: fnInfo.recent,
+			selectedItem: functionName,
+			test_counts: fnInfo.test_counts,
+			callback_before: _functionListItems,
+			callback_after: this.callback.bind(this, url)
+		}
+		var recentList = _updateDisplay(fnList, opts)		
+		fnInfo.set('recent', recentList, fnInfo.recen);
+		//========================================================================================
+	}
+	//========================================================================================[4]
+	/**
+	 *	called after test calls found from setupTestScriptFinish()
+	**/
+	___.prototype.setTestCallCount = function ___setTestCallCount(count, funcName)
+	{													
+		if (!count || !fnList.options.length)
+			return;
+		
+		var idx = fnList.selectedIndex;
+		if (idx == -1 || fnList.options[idx].value != funcName)
+			return;
+		
+		var text = fnList.options[idx].text.replace(/\(.*\)/, count.wrap('()'));
+		fnList.options[idx].text = text;
+		
+		var fnInfo = _getFileInfo(folder, filename); 
+		if (!fnInfo) return;
+		
+		if (fnInfo.test_counts[funcName] != count)
+		{			
+			fnInfo.test_counts[name] == count;
+			mruDATA.setValueChanged(' [test_counts] ' + arguments.callee.name);
+			this.save();
+		}
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *
+	 */
+	___.prototype.refreshList = function ___refreshList(el)
+	{
+		var action = (el instanceof Element) ? el.value : 'script';
+		if (action == 'script')
+		{
+			var fnInfo = _getFileInfo(folder, filename);
+			fnInfo.functionList = [];
+			_dimList(fnList);
+			return ___.buildFunctionList(fnInfo);
+		}
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	called from delete icon (debug mode)
+	**/
+	___.prototype.resetFolders = function ___resetFolders(el)
+	{
+		options.excludeList = el.value;
+		options.foldersOpened = [];
+		EZ.clearList(fileList);
+		EZ.clearList(fnList);
+		filename = functionName = '';
+		this.folderSelected()
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	called from delete icon (debug mode)
+	**/
+	___.prototype.remove = function ___remove()
+	{
+		var mruDefault = defaultData();		
+		for (var key in mru) 						//preserve mru global
+			if (!mruDefault.keep.includes(key)) delete mru[key]
+		for (var key in mruDefault)					//preserve mru global						
+			if (key != 'keep') mru[key] = mruDefault[key];
+		
+		folderList.selectedIndex = -1;
+		EZ.clearList(fileList);
+		EZ.clearList(fnList);
+		folder = filename = functionName = '';
+		message = 'cleared all saved recent selection';
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	updates most recently run test from any folder / file
+	 *	displayed by mruTests constructor
+	**/
+	___.prototype.updateTestList = function ___updateTestList()
+	{
+		var testName = functionName + ' \t ' + filename + ' \t ' + folder;
+		var regex = RegExp(testName + '.*@');
+		mru.recentTestList = (mru.recentTestList || []).remove(regex);
+		mru.recentTestList.unshift(testName + ' \t ' + EZ.format.date());
+		//var limit = EZ.toInt(EZ.get('recentTestListLimit'), 20);
+		mru.recentTestList.length = Math.min(5, mru.recentTestList.length);
+	}
+	//_________________________________________________________________________________________________
+	/**
+	 *	called by init
+	**/
+	function _displayRecentRunTest()
+	{
+																//display recent test functions
+		var title = ['Function    \t Filename    \t Folder    \t '];
+		var lines = title.concat(mru.recentTestList).format();
+		EZ.set('recentTestListCount', (lines.length-1).wrap('[]'));
+		lines[0] = lines[0].wrap('<b class="pre">');
+		EZ('recentTestList').innerHTML = lines.join('\n');
+	}
+
+	//_________________________________________________________________________________________________
+	e = function _____internal_functions_____() {}
+	//_________________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	function _getMRU(folder, filename)
+	{
+		EZ.test.app.state = 'mru';									//prevent until until ready()
+		var selected = mru._selectedList || {};
+		switch (arguments.length)
+		{
+			case 0: return selected[''] || '';
+			case 1: return selected[folder] || '';
+			case 2: return selected[ (folder || '').concat(':', filename) ] || '';
+		}
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	function _setMRU(folder, filename, functionName)
+	{
+		if (folder && mru._folder != folder)
+			resetTests();
+		else if (filename && mru._filename != filename)
+			resetTests();
+		else if (functionName && mru._functionName != functionName)
+			resetTests();
+		
+		switch (arguments.length)
+		{
+			case 1: 
+			{
+				mru._folder = folder;
+				if (mru._selectedList[''] == folder) return;
+				mru._selectedList[''] = folder;
+				break;
+			}
+			case 2: 
+			{
+				mru._filename = filename;
+				if (mru._selectedList[folder] == filename) return;
+				mru._selectedList[folder] = filename;
+				break;
+			}
+			case 3: 
+			{
+				mru._functionName = functionName;
+				var key = folder.concat(':', filename);
+				if (mru._selectedList[key] == functionName) return;
+				mru._selectedList[key] = functionName;
+				break;
+			}
+		}
+		mruDATA.setValueChanged();
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	return folder properties from mru.folderInfo[folder] -- create if necessary
+	 */
+	function _getFolderInfo(folder) 
+	{
+		if (!folder) 
+			return EZ.oops('no folder');
+		
+		var folderInfo = mru.folderInfo[folder] = mru.folderInfo[folder] || {};
+		mruDATA.migrate(folderInfo, FolderInfoDefault());
+		
+		folderInfo.set = function(key, value, currentValue) 
+		{
+			if (folderInfo[key] === undefined
+			|| folderInfo[key] === value
+			|| (currentValue && EZ.equals(currentValue, folderInfo[key])))
+				return;
+			
+			folderInfo[key] = value;
+			mruDATA.setValueChanged(' [folderInfo] ' + arguments.callee.caller.name);
+		}
+		return folderInfo;
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	return mru.fnLists item for folder / filename -- create if necessary
+	 */
+	function _getFileInfo(folder, filename) 
+	{
+		if (arguments.length === 0 || !folder || !filename)
+		{
+			folder = mru._folder, 
+			filename = mru._filename
+		}
+														//create lists if NA 
+		var fnFolder = mru.fnLists[folder] = mru.fnLists[folder] || {};
+		var fnInfo = fnFolder[filename] = fnFolder[filename] || {};
+		mruDATA.migrate(fnInfo, fnInfoDefaul());
+		
+		fnInfo.set = function(key, value, currentValue) 
+		{
+			if (fnInfo[key] === undefined
+			|| fnInfo[key] === value
+			|| (currentValue && EZ.equals(currentValue, fnInfo[key])))
+				return;
+			
+			fnInfo[key] = value;
+			mruDATA.setValueChanged(' [fnLists] ' + arguments.callee.caller.name);
+		}
+		return fnInfo;		
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	
+	**/
+	function _dimList(list)
+	{
+		EZ.clearList(list);
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *	click to refresh list -- built 12-17-2016
+	 *	click to refresh list -- built @ 6:05 am
+	**/
+	function _displayDropdown(list, items, selected, options)
+	{
+		options = options || {};
+		if (!options.sep)
+		{
+			EZ.clearList(list);
+			EZ.removeClass(list, 'highlight', items.length);
+			EZ.displayDropdown(list, items, selected, {size:15, noclear:true});
+		}
+		else
+		{
+			list.EZfield.resetInitialAttribute('options');
+			EZ.addClass(list, ['highlight', 'recent']);
+			EZ.displayDropdown(list, items, selected, {size:15, noclear:true, sep:options.sep+1});
+																//update recent heading text
+		}
+		EZ.removeClass(list, ['invisible', 'dimMore']);
+	
+		if (options.sep)
+			list.options[0].text = EZ.s(list.options[0].text, options.sep) + ' on top';
+		
+		if (options.timestamp)
+		{
+			var text = EZ.format.dateTime(options.timestamp, 'today time date -seconds').trim();
+			text = (text.includes('-')) ? text : ' @ ' + text;
+		}
+			var callback = options.callback;
+		delete options.callback;
+		
+	if (callback)
+			callback();
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *
+	 */
+	function _getExcludeList(items)
+	{
+		if (items && !EZ.get('excludeList'))
+			return items;
+
+		if (items) return items.remove(/( Copy|\.safe|\.work|\.after*|\.before*|\.deleteme)/);
+
+		var regex = EZ.get('excludeListRegex').trim().replace(/\s+/g, '|');
+		if (regex)
+		{
+			try
+			{
+				if (regex.includes('|'))
+					regex = '' + regex.replace(/^\(/, '').replace(/\)$/, '') + ')'
+				EZ.set('excludeListRegex', regex);
+					regex = regex.replace(/\./g, '\\.');
+				regex = RegExp(regex);
+				
+				//regex = /( Copy|\.safe|\.work|\.after*|\.before*|\.deleteme)/;
+			}
+			catch (e)
+			{
+				message = 'Invalid Regular Expression';
+				EZ.displayMessage(message);
+				EZ.removeClass('excludeListRegex','hidden');
+				setTimeout("EZ('excludeListRegExp').focus()",500)
+				return false;
+			}
+		}
+		if (items)
+			items.remove(regex);
+		else if (regex)
+			EZ('excludeList').checked = true;
+	}
+	//______________________________________________________________________________________________
+	/**
+	 *
+	 */
+[_sortOptions]
+	function _sortOptions(a,b)
+	{
+		a = a[0].toLowerCase().trimPlus(EZ.dot).trim();
+		b = b[0].toLowerCase().trimPlus(EZ.dot).trim();
+		return (a < b) ? -1
+			 : (a > b) ? 1
+			 : 0;
+	}
+	//__________________________________________________________________________________________________
+	/**
+	 *	creates topContext Object (pseudo static) -- valid constructor or can call a default function. 
+	 */
+	var _init = function _init()
+	{
+		var fn = new ___();							//create Object -- copy new Object properties
+		for (var key in fn)							//including prototype functions
+			___[key] = fn[key]
+		topContext = ___;							//initialized after constructor called above
+	
+		for (var key in ___)						//bind other functions to topContext
+			if (typeof(___[key]) == 'function')	___[key] = ___[key].bind(___);		
+													
+		options = defaultOptions(); 				//create default options for topContext Object
+		topContext.__options__ = options 			//set topContext._options -- debugger convenience
+	
+													
+		//topContext._data = data;					//set topContext._data -- debugger convenience
+		/*
+		EZ.event.add(window, 'onload', function()	//initialization requiring DOM 
+		{											
+		});	
+		*/
+		return topContext;							//return updated topContext
+	}
+	//==================================================================================================
+	return topContext = _init();
+})();

@@ -1,0 +1,28 @@
+<html>
+<head>
+<title>Untitled Document</title>
+<script type="text/javascript" src="../EZsortable.js"></script>
+<script type="text/javascript">
+function setup()
+{
+	var list = document.getElementById("foo");
+	EZsortable.create(list); // That's all.
+}
+</script>
+
+<link href="app.css" rel="stylesheet" type="text/css">
+</head>
+
+<body onload="setup()">
+<ul id="foo" class="block__list">
+  <li>антон</li>
+  <li>краб</li>
+  <li>корм</li>
+  <li>сало</li>
+  <li>бегемот</li>
+  <li>железосталь</li>
+  <li>валик</li>
+  <li>кровать</li>
+</ul>
+</body>
+</html> 

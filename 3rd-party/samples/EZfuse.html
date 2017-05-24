@@ -1,0 +1,785 @@
+<html>
+<head>
+<title>fuse example code</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script type="text/javascript" src="../../js/EZprototypes.js"></script> 
+<script type="text/javascript" src="../../js/EZfuse.js"></script>
+<!--script type="text/javascript" src="fuse.js"></script-->
+<style type="text/css">
+* {
+	font-family: Arial, sans-serif;
+	font-size: 12px;
+}
+.hidden { display: none; }
+.invisible { visibility: hidden; }
+ul {
+	margin: 0;
+	padding-left: 25px;
+}
+.formattedResults {
+	overflow: auto;
+	white-space: nowrap;
+}
+.formattedResults i {
+	font-weight: bold;
+	color: #C00;
+}
+.scored { background-color: #FEFEB3; }
+
+#notes li { padding-bottom: 5px; }
+input[size="5"] { width: 30px; }
+input[size="10"] { width: 50px; }
+.centerInput input[type="text"] { text-align: center; }
+</style>
+<script>
+/*--------------------------------------------------------------------------------------------------
+global variables
+--------------------------------------------------------------------------------------------------*/
+var g = {};
+if (!window.EZ) window.EZ = function EZ() {}
+
+EZ.tester = function EZtester() {};		//over-ridden after EZtester.js loaded.
+EZ.tester.results = EZ.tester.create = EZ.callback = EZ.tester;
+/*--------------------------------------------------------------------------------------------------
+	//run('default');					//run search using options defined by default form field values
+--------------------------------------------------------------------------------------------------*/
+function setup(id)
+{
+	g.message = document.getElementById('message');
+	if ([].indexOf == undefined)
+		return g.message.innerHTML = 'Newer Browser Required';
+	
+	//----- Create Fuse object with no options then call search() to get default values for all options
+	//		only options with non-default values are used for subsequent searches.
+	g.fuzzy = new Fuse([]);			
+	g.fuzzy.search('');				
+	g.defaultOptions = {}
+	for (var key in g.fuzzy.options)
+	{
+		if (g.fuzzy.options.hasOwnProperty)
+			g.defaultOptions[key] = g.fuzzy.options[key];
+	}
+	
+	selectList('items_objects');	//select small object list
+	EZ.tester.callback(run);		//specify function called by EZ.tester when running test scripts
+}
+/*--------------------------------------------------------------------------------------------------
+called by list radio button and setup() to populate global g.list 
+--------------------------------------------------------------------------------------------------*/
+function selectList()
+{
+	g.list = g.users;
+	
+	var el = document.getElementById('list_str');
+	var value = document.getElementById('items_strings').value;
+	if (!el.checked)
+	{
+		el = document.getElementById('list_regex');
+		value = document.getElementById('items_regex').value;
+	}
+	if (el.checked)
+	{
+		g.list = value.split('\n');
+	}
+	else
+	{	
+		el = document.getElementById('list_obj');
+		value = document.getElementById('items_objects').value;
+		if (el.checked)
+		{
+			var json = value.replace(/\n/g, '');
+			json = json.replace(/(\w*?):/g, '"$1":')
+			g.list = JSON.parse(json);
+		}
+	}	
+	var listLength = document.theForm.listLength;
+	if (!listLength.value)
+		listLength.value = g.list.length;
+}
+/*--------------------------------------------------------------------------------------------------
+Does fuzzy search using data form fields and users.js when huge list is selected.
+
+called by search form buttons -OR- EZ.tester() framework when running saved test script.
+--------------------------------------------------------------------------------------------------*/
+function run(testdata)							//testdata is empty object when running test script
+{												//all test data contained in form fields
+	var useExisting = (testdata == 'existing');	//=existing if called use existing Fuse object 
+												//test scripts always create new Fuse().
+	
+	
+	//----- Initial list of test script fields saved with test script
+	g.testFields = ['list', 'listLength', 'resultsHeight'];				
+	
+	//----- If running test script, reselect search list from field values reset by test franmework.
+	var listLength = document.theForm.listLength.value;
+	if (typeof(testdata) == 'object')
+	{
+		selectList();
+		document.theForm.listLength.value = listLength;
+	}
+	
+	//----- trim search list and/or display updated length
+	listLength = parseInt(listLength);
+	g.searchList = g.list.slice();
+	if (listLength && g.searchList.length > listLength)
+		g.searchList.length = listLength;
+	else if (g.searchList.length < listLength)
+		document.theForm.listLength.value = listLength;		
+	
+	//----- Clear prior results
+	g.message.innerHTML = '';
+	document.getElementById('count').innerHTML = '. . .';
+	document.theForm.results.value = 'searching . . .';
+	
+	var now = new Date() + '';
+	var msg = '@ ' + (now.match(/(\d{2}:\d{2}:\d{2})/)[1]) + ''
+	document.getElementById('timestamp').innerHTML = msg;
+
+	g.searchText = document.theForm.list_regex.checked ? document.theForm.searchTextRegex.value 
+				 : document.theForm.list_str.checked ? document.theForm.searchTextStr.value 
+				 : document.theForm.searchTextObj.value; 
+	
+	// search word field
+	if (document.theForm.list_str.checked)
+		g.testFields.push('searchTextStr');
+	else if (document.theForm.list_obj.checked)
+		g.testFields.push('searchTextObj');
+	else	
+		g.testFields.push('searchTextRegEx');
+		
+	  //-------------------------------\\
+	 //----- create search options -----\\
+	//-----------------------------------\\
+	g.options = {};
+	var activeOptions = useExisting ? g.fuzzy.options : g.defaultOptions;
+					  
+	var tags = document.getElementsByTagName('*');
+	[].forEach.call(tags, function(tag)	
+	{									//for all fields with id starting with 'fuzzy_' . . .
+		var id = tag.id;
+		if (id.substr(0,6) != 'fuzzy_') return;
+		
+		var key = tag.id.substr(6);
+		var value = (tag.value || '').trim();
+		
+		if (/select/i.test(tag.tagName))		//dropdown
+		{
+			if (tag.selectedIndex == -1)
+				value = '';
+			else
+			{
+				value = tag.options[tag.selectedIndex].value;
+				if (value == 'none') 
+					value = '';
+			}
+			if (/(true|false)/.test(value))
+				value = eval("value=='true'");
+		}
+		
+		else if (tag.type == 'checkbox')		//checkbox
+			value = tag.checked ? tag.value : '';
+		
+		else if (typeof(value) != 'boolean' && !isNaN(value))
+			value = Number(value);
+		
+		switch (key)	//for multiple fields, Array option or searcher include
+		{
+			case 'threshold': 	
+			case 'location': 	
+			case 'distance': 	
+			{								//multiple fields - non-regex
+				if (document.theForm.list_regex.checked) return;
+				break;
+			}
+			case 'keys': 	
+			case 'sortKeys': 				//Array options for list of objects
+			{
+				if (!document.theForm.list_obj.checked) return;
+				value = value.trim().split(/\s*,\s*/);
+				break;
+			}
+			default:
+			{								//multiple fields - regex
+				if (key.substr(-6) == '_regex') 
+				{
+					if (!document.theForm.list_regex.checked) return;
+					key = key.substr(0, -6);
+					break;
+				}
+	
+				if (/\binclude\b/.test(tag.className))
+				{							//searcher include values
+					if (!g.options.include)
+						g.options.include = [];
+					
+					if (value.indexOf('item') != -1) 
+						g.options.include.push(key);
+					
+					if (value.indexOf('array') != -1)  
+						g.options.include[key] = true;
+					g.testFields.push(tag);
+					return;
+				}
+			}
+		}	
+		g.testFields.push(tag);
+		
+		// Only save if option if diff from defaultOptions -OR= changed when useExisting
+		if (value === '') return;
+		if (value !== false && value != activeOptions[key])
+			g.options[key] = value;
+	});
+	  //-------------------------\\
+	 //----- Display options -----\\
+	//-----------------------------\\
+	var json = 'options = ' + JSON.stringify(g.options,null,4);
+	
+	if (g.options.include 	//if named properties
+	&& Object.keys(g.options.include).join('').replace(/\d*/g,''))
+	{
+		Object.getOwnPropertyNames(g.options.include).forEach(function(key, idx)
+		{
+			if (key == 'length') return;
+			if (isNaN(key))
+				json += '\noptions.include.' + key + ' = ' 
+					  + JSON.stringify(g.options.include[key], 4);
+		});
+	}
+	
+	json = json.replace(/"([A-Z]\w*?)":/gi, '$1:');		//un-quote keys
+	document.getElementById('options').innerHTML = json;
+	
+	  //-------------------------------\\
+	 //----- setup and call search -----\\
+	//-----------------------------------\\
+	document.getElementById('resultsTop').style.display = 'none';
+	document.getElementById('resultsBottom').style.display = 'none';
+	var maxHeight = (parseInt(document.theForm.resultsHeight.value) || 1000) + 'px';
+	if (g.options.formattedResults)
+	{
+		document.getElementById(g.options.formattedResults).style.display = '';
+		document.getElementById(g.options.formattedResults).style.maxHeight = maxHeight;
+	}
+	
+	//----- search with new Fuse object or use prior 
+	var code, results;
+	if (!useExisting) 	
+	{								//create new Fuse() object
+		code = 'g.fuzzy = new Fuse(g.searchList, g.options); \n'
+			 + 'g.results = g.fuzzy.search(g.searchText);'
+	}
+	else							//use existing Fuse object
+	{
+		code = 'g.fuzzy.set(g.searchList); \n'
+			 + 'g.results = g.fuzzy.search(g.searchText,g.options);';
+	}
+									//display script
+	document.getElementById('code').innerHTML = code.replace(/g\./g, '');	
+	var e;
+	try
+	{
+		eval(code);					//run search
+	}
+	catch (e)
+	{
+		html = (e.stack ? e.stack : e + '');
+		g.message.innerHTML = html.replace(/.*\(.*\/(.*)\)/gm, '$1');
+	}
+	if (!g.options.callback)	
+		searchResults(g.results);	//no callback
+	
+	void(0);	//debugger placeholder
+
+}
+//_____________________________________________________________
+/**
+ *	Display search results
+ */
+function searchResults(results)
+{
+	//----- Pass results and form fields used for search to EZtester() framework.
+	//		No other test data is required to create test scripts -- EXCEPT:
+	//			list of objects defined in users.js set by run() function
+	//			outside of test framework when selected for search.
+	EZ.tester.results(results, {}, g.testFields);
+	g.results = results;
+	displayResults();
+	document.getElementById('count').innerHTML = g.results.length;
+	
+}
+//_________________________________________________________________________________
+/**
+ *	display results as pure json or compressed
+ */
+function displayResults()
+{
+	if (!g.results)	return;
+	var html = JSON.stringify(g.results, null, 2)	
+	
+	// pseudo JSON includes ArrayLike properties
+	if (document.theForm.jsonFormat_1.checked && EZ.stringify)
+		html = EZ.stringify(g.results, null, 2)	
+	
+	document.theForm.results.value = html.trim();
+}
+/*--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------*/
+</script>
+</head>
+<body onLoad="setup()">
+<pre id="message" style="color:#C00; font-weight:bold;font-size:14px"></pre>
+<form name="theForm">
+  <div style="display:table-cell">
+    <b>Results Array</b>
+    <span id="timestamp">[timestamp]</span>
+    &nbsp;&nbsp;&nbsp;
+    match count:
+    <span id="count">[count]</span>
+    <br>
+<label>
+      <input type="radio" name="jsonFormat" value="true" id="jsonFormat_0" onClick="displayResults()">
+      Pure JSON</label>
+    <label>
+      <input name="jsonFormat" type="radio" id="jsonFormat_1" onClick="displayResults()" value="false" checked>
+      Compressed for readibiliy</label>
+	<br>
+    <textarea name="results" rows="15" id="results" wrap="off" style="width:300px">[results]</textarea>
+  </div>
+  <div style="display:table-cell;margin-left:100px">
+    <div id="resultsTop" class="formattedResults">
+      [formatted_results]
+    </div>
+  </div>
+  <div id="notes" style="display:table-cell">
+    <div id="notes" style="white-space:nowrap">
+      <br>
+      <ul>
+        <li>Pure JavaScript -- no JavaScript libraries -- no images</li>
+        <li>very little  css  to avoid clutter </li>
+        <li>All script embeded in html file EXCEPT:<br>
+          users.js which contains huge list of objects<br>
+          EZtester.js framework to create and run test scripts </li>
+        <li>shows use of all Fuse options except: <br>
+          searchFn, sortFn and getFn </li>
+        <li>works with fuse.js  or enhanced EZfuse.js</li>
+        <li>searchs with default field values after page loads</li>
+        <li><a href="https://github.com/krisk/Fuse/blob/master/README.md" target="new">Fuse README</a></li>
+        <li><a href="EZfuseREADME.md" target="new">EZfuse&nbsp;README</a></li>
+      </ul>
+    </div>
+    <br>
+  </div>
+  <hr>
+  <div style="float:left; clear:both; margin-right:50px" class="centerInput">
+    <b>options:</b> &nbsp;&nbsp;&nbsp;
+    <label>sort
+      <select name="fuzzy_shouldSort" id="fuzzy_shouldSort">
+        <option value="false">no sort</option>
+        <option value="true" selected>by score</option>
+        <option value="value">by value</option>
+        <option value="id">by ids</option>
+        <option value="keys">by keys</option>
+      </select>
+    </label>
+    <label>
+      <input name="fuzzy_caseSensitive" type="checkbox" id="fuzzy_caseSensitive" value="true">
+      case sensitive</label>
+    &nbsp;&nbsp;&nbsp;
+    <label>
+      <input name="fuzzy_searchTime" type="checkbox" id="fuzzy_searchTime" checked>
+      search time</label>
+    <br>
+    &nbsp;&nbsp;
+    <label>
+      <input name="fuzzy_callback" type="checkbox" id="fuzzy_callback" value="searchResults">
+      use callback</label>
+    &nbsp; &nbsp;
+    <label>cancel after
+      <input name="fuzzy_cancelTime" type="text" id="fuzzy_cancelTime" value="1000"
+  style="width:50px">
+      ms</label>
+    &nbsp;&nbsp;&nbsp;
+    <label> pause every
+      <input name="fuzzy_pauseTime" type="text" id="fuzzy_pauseTime" value="500" size="5">
+      ms</label>
+    <br>
+    &nbsp;&nbsp;&nbsp;
+    location:[0]
+    <input name="fuzzy_location" type="text" id="fuzzy_location" size="5">
+    &nbsp;&nbsp;&nbsp;
+    distance[100]
+    <input name="fuzzy_distance" type="text" id="fuzzy_distance" value="55" size="5">
+    &nbsp;&nbsp;&nbsp;
+    threshold[0.6]
+    <input name="fuzzy_threshold" type="text" id="fuzzy_threshold" value="0.4" size="5">
+    &nbsp;&nbsp;[defaults]<br>
+    &nbsp;&nbsp;&nbsp;
+    <label>max search text length
+      <input name="fuzzy_maxPatternLength" type="text" id="fuzzy_maxPatternLength" value="32" size="5">
+    </label>
+    &nbsp;&nbsp;
+    <label>
+      <input name="fuzzy_truncateSearchText" type="checkbox" id="fuzzy_truncateSearchText" value="true" checked>
+      truncate search text - no exception</label>
+    <p> <b>include searcher values . . .</b> <br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <label>score
+        <select name="fuzzy_score" id="fuzzy_score" class="include">
+          <option value="none">not included</option>
+          <option value="item">item property</option>
+          <option value="array">separate array</option>
+          <option value="item array" selected>item and array</option>
+        </select>
+      </label>
+      &nbsp;&nbsp;&nbsp;
+      <label>scored key
+        <select name="fuzzy_scoredKey" id="fuzzy_scoredKey" class="include">
+          <option value="none">not included</option>
+          <option value="item">item property</option>
+          <option value="array" selected>separate array</option>
+          <option value="item array">item and array</option>
+        </select>
+      </label>
+      <br>
+      &nbsp;
+      <label>list index
+        <select name="fuzzy_listIndex" id="fuzzy_listIndex" class="include">
+          <option value="none">not included</option>
+          <option value="item">item property</option>
+          <option value="array">separate array</option>
+          <option value="item array" selected>item and array</option>
+        </select>
+      </label>
+      <label>matched keys
+        <select name="fuzzy_matchedKeys" id="fuzzy_matchedKeys" class="include">
+          <option value="none">not included</option>
+          <option value="item">item property</option>
+          <option value="array">separate array</option>
+          <option value="item array" selected>item and array</option>
+        </select>
+      </label>
+      <br>
+      &nbsp;&nbsp;&nbsp;&nbsp;
+      <label>offsets
+        <select name="fuzzy_offsets" id="fuzzy_offsets" class="include">
+          <option value="none">not included</option>
+          <option value="item">item property</option>
+          <option value="array">separate array</option>
+          <option value="item array" selected>item and array</option>
+        </select>
+      </label>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <label>locations
+        <select name="fuzzy_locations" id="fuzzy_locations" class="include">
+          <option value="none" selected>not included</option>
+          <option value="item">item property</option>
+          <option value="array">separate array</option>
+          <option value="item array">item and array</option>
+        </select>
+      </label>
+    </p>
+  </div>
+  <div style="float:left;margin-bottom:10px">
+    <!===========================================================================================> 
+    <!         EZtester display starts
+    <!===========================================================================================>
+    <fieldset id="EZtester_wrap">
+      <legend align="center"><b><span id="EZtester_testCount"></span>TEST SCRIPTS</b></legend>
+      <div align="center">
+        <pre id="EZtester_message" style="font-weight:bold;overflow:auto;margin: 0;" align="left">&nbsp;</pre>
+        
+        <!-- top buttons -->
+        <div id="EZtester_top" class="invisible" style="padding:3px 0px">
+          <input name="EZtester_load" type="button" id="EZtester_load" onClick="EZ.tester.loadFile()" value="load scripts">
+          &nbsp;
+<input name="EZtester_save" type="button" id="EZtester_save" onClick="EZ.tester.saveFile()" value="download">
+&nbsp;&nbsp;
+<input name="EZtester_run" type="button" id="EZtester_run" onClick="EZ.tester.runMenu()" value="run scripts">
+        </div>
+        
+        <!-- center options -->
+        <div id="EZtester_middle" class="invisible" style="padding:6px 0; white-space:nowrap">
+          
+          <!-- test info -->
+          <div id="EZtester_testInfo" style="text-align:left;">
+            <label>test name:
+              <input name="EZtester_name" type="text" id="EZtester_name" size="28" value="Default"
+              		onChange="EZ.tester.updateScript(this)">
+            </label>
+            <label>Passed
+            <select name="EZtester_status" id="EZtester_status"
+              		onChange="EZ.tester.updateScript(this)">
+              <option value="" selected>&nbsp;?</option>
+              <option value="pass">yes</option>
+              <option value="fail">no</option>
+            </select></label>
+            <br>
+            &nbsp;&nbsp;&nbsp;
+            <label>last run:
+              <input name="EZtester_lastRunTime" type="text" id="EZtester_lastRunTime" size="12"
+              		onChange="EZ.tester.updateScript(this)">
+            </label>
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <label>last passed:
+              <input name="EZtester_lastPassTime" type="text" id="EZtester_lastPassTime" size="12"
+              		onChange="EZ.tester.updateScript(this)">
+            </label>
+          </div>
+          
+          <!-- browse / download -->
+          <label id="EZtester_browse" class="hidden">
+          <input type="file" onChange="EZ.tester.upload(this)">
+          	<br>File must be in same folder as html page
+          </label>
+          <span id="EZtester_download" class="hidden" style="color:#C00;font-weight:bold">
+          	<a download="scripts.js" href="javascript:void(0)">download</a> 
+          	&nbsp;&nbsp;&nbsp;save in same folder as html page&nbsp;&nbsp;&nbsp;
+          	<a href="javascript:EZ.tester.closeMenu()">close</a> 
+          </span>
+         
+         <div id="EZtester_note" class="hidden"><b>Prior Settings Restored</b></div>
+         <a id="EZtester_restore" href="javascript:EZ.tester.restore()" 
+          class="hidden" style="margin-top:6px">Restore Page Defaults</a>
+         
+         <!-- run menu -->
+          <div id="EZtester_runMenu" align="left" class="hidden">
+            RUN 
+			<select name="EZtester_runTime" id="EZtester_runTime">
+<option value="any">all test scripts</option>
+              <option value="today">any run today</option>
+              <option value="hour">any run last hour</option>
+              <option value="last">only last test</option>
+            </select>
+            &nbsp;with&nbsp;
+            <select name="EZtester_runStatus" id="EZtester_runStatus">
+              <option value="any" selected>any</option>
+              <option value="today">passed</option>
+              <option value="hour">failed</option>
+              <option value="na">unknown</option>
+            </select> status
+			<br>sorted
+            <select name="EZtester_runOrder" id="EZtester_runOrder">
+              <option value="asis" selected>in current order</option>
+              <option value="mru">most recently run </option>
+              <option value="worst">passed before</option>
+              <option value="fail">never passed</option>
+              <option value="pass">passes now</option>
+              <option value="na">pass/fail NA</option>
+            </select> 
+            &nbsp;&nbsp;&nbsp;
+            pause
+            <select name="EZtester_runPause" id="EZtester_runPause">
+              <option value="each"selected>after each test</option>
+              <option value="fail">when test fails</option>
+              <option value="pass">when test passes</option>
+              <option value="na">when status na</option>
+              <option value="na">after all tests</option>
+            </select> 
+          </div>
+        </div>
+        
+        <!-- bottom buttons -->
+        <div id="EZtester_bottom" style="height:25px;clear:both;">
+          <span id="EZtester_loading"><b>EZtester.js not loaded</b></span>
+          <input name="EZtester_list" type="button" id="EZtester_list" value="discard test scripts"
+            onClick="EZ.tester.restoreDefaults()"  class="hidden">
+          <label class="hidden">
+            <input type="checkbox" name="EZtester_auto" value="auto" id="EZtester_auto">
+            auto add new scripts</label>
+          <input name="EZtester_last" type="button" id="EZtester_last" 
+            onClick="EZ.tester.updateScript()" value="create test script" class="hidden">
+        </div>
+      </div>
+    </fieldset>
+    <!===========================================================================================> 
+    <!         EZtester display ends
+    <!===========================================================================================>
+  </div>
+  <div style="clear:both" class="centerInput">
+    <input type="button" value="new Fuse() &amp; search" onClick="run()">
+    <input type="button" value="search" onClick="run(true)">
+    &nbsp;&nbsp;
+    <br>
+    <label> max results:
+      <input name="fuzzy_maxResults" type="text" id="fuzzy_maxResults" size="5">
+    </label>
+    &nbsp;
+    <label> list length:
+      <input name="listLength" type="text" id="listLength" value="1" size="10">
+    </label>
+    &nbsp;&nbsp;
+    <span style="white-space:nowrap">
+    <label>formatted results:
+      <select name="fuzzy_formattedResults" id="fuzzy_formattedResults">
+        <option value="none">none</option>
+        <option value="resultsTop" selected>above</option>
+        <option value="resultsBottom">below</option>
+      </select>
+    </label>
+    &nbsp;&nbsp;
+    <label>max-height:
+      <input name="resultsHeight" type="text" id="resultsHeight" value="400" size="5">
+    </label>
+    </span>
+  </div>
+  <hr>
+  </div>
+  <div style="float:left">
+    <label>
+      <input name="list" type="radio" id="list_str" onClick="selectList()">
+      list of 
+      Strings</label>
+    <b><br>
+    search for:</b> <br>
+    <input name="searchTextStr" type="text" id="searchTextStr" value="pear" size="12">
+    <br>
+    <b>returned Array:</b><br>
+    <label>
+      <input name="fuzzy_itemResults" type="radio" id="fuzzy_itemIndex" checked>
+      indexes</label>
+    <br>
+    <label>
+      <input name="fuzzy_itemResults" type="radio" id="fuzzy_itemValue">
+      item values</label>
+    <br>
+    <textarea rows="20" cols="10" id="items_strings" name="items_strings">banana
+orange
+pear
+peach
+apple
+</textarea>
+  </div>
+  <div style="float:left">
+    &nbsp;&nbsp;&nbsp;
+  </div>
+  <div style="float:left">
+    <label>
+      <input name="list" type="radio" id="list_obj" checked onClick="selectList()">
+      small list below</label>
+    &nbsp;&nbsp;&nbsp;
+    <label>
+      <input name="list" type="radio" id="list_obj_huge" onClick="selectList()">
+      huge list users.js</label>
+    <br clear="all">
+    <b>search for:</b>&nbsp;&nbsp;&nbsp;
+    <input name="searchTextObj" type="text" id="searchTextObj" value="dav" size="32">
+    <br>
+    <b>search keys:</b>
+    <input name="fuzzy_keys" type="text" id="fuzzy_keys" value="title, author.firstName" size="32">
+    <br>
+    &nbsp;&nbsp;&nbsp;<b> sort keys:</b>
+    <input name="fuzzy_sortKeys" type="text" id="fuzzy_sortKeys" value="author.firstName,title" size="32">
+    <br>
+    <b>&nbsp;return id(s):</b>
+    <input name="fuzzy_id" type="text" id="fuzzy_id" 
+    	value="title, author.firstName" size="32">
+    <br>
+    <textarea rows="25" cols="45" id="items_objects" name="items_objects">[{
+  title: "The DaVinci Code",
+  author: {firstName: "Dan", lastName: "Brown"}
+},{
+  title: "Old Man's War",
+  author: {firstName: "John", lastName: "Scalzi"}
+},{
+  title: "The Lock Artist",
+  author: {firstName: "Steve", lastName: "Hamilton"}
+},{
+  title: "HTML5",
+  author: {firstName: "Remy", lastName: "Sharp"}
+},{
+  title: "Right Ho Jeeves",
+  author: {firstName: "P.D", lastName: "Woodhouse"}
+},{
+  title: "The Code of the Wooster",
+  author: {firstName: "P.D", lastName: "Woodhouse"}
+},{
+  title: "Thank You Jeeves",
+  author: {firstName: "P.D", lastName: "Woodhouse"}
+},{
+  title: "The Book of Samson",
+  author: {firstName: "David", lastName: "Maine"}
+},{
+  title: "Angels &amp; Demons",
+  author: {firstName: "Dan", lastName: "Brown"}
+},{
+  title: "The Silmarillion",
+  author: {firstName: "J.R.R", lastName: "Tolkien"}
+},{
+  title: "Syrup",
+  author: {firstName: "Max", lastName: "Barry"}
+},{
+  title: "The Lost Symbol",
+  author: {firstName: "Dan", lastName: "Brown"}
+},{
+  title: "The Book of Lies",
+  author: {firstName: "Brad", lastName: "Meltzer"}
+},{
+  title: "Lamb",
+  author: {firstName: "Christopher", lastName: "Moore"}
+},{
+  title: "Fool",
+  author: {firstName: "Christopher", lastName: "Moore"}
+},{
+  title: "Incompetence",
+  author: {firstName: "Rob", lastName: "Grant"}
+},{
+  title: "Fat",
+  author: {firstName: "Rob", lastName: "Grant"}
+},{
+  title: "Colony",
+  author: {firstName: "Rob", lastName: "Grant"}
+},{
+  title: "Backwards, Red Dwarf",
+  author: {firstName: "Rob", lastName: "Grant"}
+},{
+  title: "The Grand Design",
+  author: {firstName: "Stephen", lastName: "Hawking"}
+},{
+  title: "The Preservationist",
+  author: {firstName: "David", lastName: "Maine"}
+},{
+  title: "Fallen",
+  author: {firstName: "David", lastName: "Maine"}
+},{
+  title: "Monster 1959",
+  author: {firstName: "David", lastName: "Maine"}
+}]</textarea>
+  </div>
+  <pre style="float:left;padding-left:15px"><b>JavaScript:</b>
+
+<span id="options">[options]</span>
+
+<span id="code">[code]</span>
+</pre>
+  <br clear="all">
+  <hr>
+  <div style="float:left">
+    <label>
+      <input name="list" type="radio" id="list_regex" onClick="selectList()">
+      list of RegExp Strings</label>
+    <input style="float:right;margin:0 5px 0 15px" type="button" value="search" onClick="run()">
+    <input style="float:right" type="button" value="new Fuse() &amp; search" onClick="run('init')">
+    <br clear="all">
+    <b>search for:</b>
+    <input name="searchTextRegEx" type="text" id="searchTextRegEx" value="" size="45">
+    <br>
+    location:
+    <input name="fuzzy_location_regex" type="text" id="fuzzy_location_regex" value="0" size="5">
+    &nbsp;&nbsp;&nbsp;
+    distance:
+    <input name="fuzzy_distance_regex" type="text" id="fuzzy_distance_regex" value="5" size="5">
+    &nbsp;&nbsp;&nbsp;
+    threshold:
+    <input name="fuzzy_threshold_regex" type="text" id="fuzzy_threshold_regex" value="0.4" size="5">
+    <br>
+    <textarea rows="25" cols="55" id="items_regex" name="items_regex">
+    </textarea>
+  </div>
+</form>
+<div id="resultsBottom" class="formattedResults">
+  [formatted_results]
+</div>
+<script type="text/javascript" src="../../js/EZtester.js"></script> 
+<script type="text/javascript" src="users.js"></script>
+</body>
+</html>

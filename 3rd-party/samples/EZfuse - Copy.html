@@ -1,0 +1,527 @@
+<html>
+<head>
+<title>fuse example code</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style type="text/css">
+* {
+	font-family: Arial, sans-serif;
+	font-size: 12px;
+}
+li { padding-bottom: 5px;}
+input[size="5"] {width: 30px}
+</style>
+</head>
+<script type="text/javascript" src="../../js/EZfuse.js"></script>
+<!--script type="text/javascript" src="fuse.js"></script-->
+<script>
+/*--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------*/
+function run(action)
+{
+	  //------------------------\\
+	 //----- create options -----\\
+	//----------------------------\\
+	var options = {
+		
+		caseSensitive: document.theForm.fuzzy_caseSensitive.checked,
+		itemValue:  document.theForm.fuzzy_itemValue.checked,
+		shouldSort: document.theForm.fuzzy_sort.options[sortIndex].value,
+		truncateSearchText: document.theForm.fuzzy_truncateSearchText.checked,
+		
+		threshold: !document.theForm.list_regex.checked
+				 ? Number(document.theForm.fuzzy_threshold.value)
+				 : Number(document.theForm.fuzzy_threshold_regex.value),
+		location: !document.theForm.list_regex.checked
+				? Number(document.theForm.fuzzy_location.value)
+				: Number(document.theForm.fuzzy_location.value_regex),
+		distance: !document.theForm.list_regex.checked
+				? Number(document.theForm.fuzzy_distance.value)
+				: Number(document.theForm.fuzzy_distance.value_regex),
+		
+		
+		callback: document.theForm.fuzzy_callback.checked ? searchDone : null,
+		cancelTime: Number(document.theForm.fuzzy_cancelTime.value),
+		pauseTime: Number(document.theForm.fuzzy_pauseTime.value),
+		
+		maxResults: Number(document.theForm.fuzzy_maxResults.value),
+		maxPatternLength: Number(document.theForm.fuzzy_maxPatternLength.value),
+		searchTime: true,
+		
+		id: document.theForm.fuzzy_id.value,
+		include: []
+	};
+	var selectedIndex = document.theForm.fuzzy_sort.selectedIndex;
+	var value = document.theForm.fuzzy_sort.options[selectedIndex].value;
+	if (value && value != 'none')
+		options.shouldSort = value;
+	
+	var tags = document.getElementsByClassName('fuzzy_flags');	//text options
+	[].forEach.call(tags, function(tag)	
+	{
+		var id = tag.id;
+		var key = tag.id.substr(6);
+		var value = (tag.value || '').trim();
+		switch (key)
+		{
+			case 'threshold': 	
+			case 'location': 	
+			case 'distance': 	
+			{
+				if (document.theForm.list_regex.checked)
+					value = document.theForm[id+'_regex'].value.trim();
+				break;
+			}
+			case 'id': 	
+			case 'keys': 	
+			case 'sortKeys': 	
+			{
+				if (!document.theForm.list_obj.checked) return;
+				if (key != 'id')				
+					options[key] = value.trim().split(/\s*,\s*/);
+				break;
+			}
+			case 'itemValue': 	
+			{
+				if (document.theForm.list_obj.checked
+				|| !document.theForm.fuzzy_itemValue.checked)
+					return;
+			
+				options.id = 'value';
+				if (options.shouldSort)
+					options.sortKeys = 'value';
+				return;
+			}
+		}	
+
+		if (tag.type == 'checkbox')
+			value = tag.checked;
+		else if (!isNaN(value))
+			value = Number(value)
+		
+		if (value != defaultOptions[key])
+			options[key] = true;
+	});
+	
+	tags = document.getElementsByClassName('fuzzy_array');		//Array options
+	[].forEach.call(tags, function(tag)	
+	{
+		var key = tag.id.substr(6);
+		var value = tag.value.trim();
+		if (value) 
+			options[tag.id.substr(6)] = value.split(/\s*,\s*/);
+	});
+	
+	tags = document.getElementsByClassName('include');	//options.include
+	[].forEach.call(tags, function(tag)	
+	{
+		var val = tag.options[tag.selectedIndex].value;
+		if (val == 'none') return;
+		
+		var key = tag.id.substr(6);
+		if (!options.include)
+			options.include = [];
+		if (val.indexOf('item') != -1) options.include.push(key);
+		if (val.indexOf('array') != -1)  options.include[key] = true;
+	});
+	
+	  //-------------------------\\
+	 //----- Display options -----\\
+	//-----------------------------\\
+	var json = 'options = ' + JSON.stringify(options,null,4);
+	var other = stringifyKeys(options.include).trim();
+	json = json.replace(/("include": \[)([\s\S]*?)\s*\]/, 
+	function(all, prefix, items)
+	{
+		return (other + items) == '' ? all
+			 : prefix + items 
+			 + ',\n\t'
+			 + other.replace(/\n/g, ',\n\t');
+		
+	});
+	json = json.replace(/"([A-Z]\w*?)":/gi, '$1:');
+	document.getElementById('fuzzy_options').innerHTML = json;
+	
+	
+	  //-------------------------------\\
+	 //----- setup and call search -----\\
+	//-----------------------------------\\
+	var list = document.theForm.items_strings.value.split('\n');
+	if (document.theForm.list_obj.checked)
+	{
+		json = document.theForm.items_objects.value.replace(/\n/g, '');
+		json = json.replace(/(\w*?):/g, '"$1":')
+		list = JSON.parse(json);
+	}
+	
+	var searchText = document.theForm.list_obj.checked ? document.theForm.searchTextObj.value
+				   : document.theForm.list_str.checked ? document.theForm.searchTextStr.value 
+				   : document.theForm.searchTextRegex.value 
+	
+	var html = count = 'N/A';
+	var code, fuzzy, results;
+	
+	if (action) 	//setup or run button -- create fuzzy objech
+	{
+		code = 'fuzzy = new Fuse(list, options); \n'
+			 + 'results = fuzzy.search(searchText);'
+	}
+	else			//search button -- use existing fuzzy object
+	{
+		code = 'fuzzy.set(list); \n'
+			 + 'results = fuzzy.search(searchText,options);';
+	}
+	document.getElementById('fuzzy_code').innerHTML = code;
+	
+	var e;
+	try
+	{
+		eval(code);
+		if (!document.theForm.fuzzy_callback.checked)
+			html = searchDone(results);	// no callback
+	}
+	catch (e)
+	{
+		searchDone(e.stack ? e.stack : e + '');
+	}
+	void(0);
+
+	//_____________________________________________________________
+	/**
+	 *	Display search results
+	 */
+	function searchDone(results)
+	{
+		var html = results + '';
+		if (results)
+		{
+			count = results.length;
+			html = JSON.stringify(results, null, 2)
+				 + stringifyKeys(results);		//get named properties
+			html = html.replace(/\[\s*\{/, '[{');
+			html = html.replace(/^\s*\}\s*\]/m, '}]');
+			html = html.replace(/^\s*\},\s*\{/gm, '},{');
+			html = html.replace(/"([A-Z]\w*?)":/gi, '$1:');
+			html = html.trim();
+		}
+		document.theForm.results.value = html;
+		document.getElementById('count').innerHTML = count;
+	}
+	//_____________________________________________________________
+	function stringifyKeys(obj)
+	{
+		var html = '';
+		for (var key in obj)
+		{
+			if (!isNaN(key)) continue;
+			if (typeof obj[key] == 'undefined') continue;
+			html += '\n' + key + ': ' + JSON.stringify(obj[key]);
+		}
+		return html;
+	}
+}
+/*--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------*/
+</script>
+<body onLoad="run('onload')">
+<form name="theForm">
+  <div style="display:table-cell">
+    <b>Results</b> &nbsp;&nbsp;&nbsp;
+    match count: 
+    <span id="count">[count]</span><br>
+<textarea name="results" rows="15" id="results" wrap="off" style="width:300px">[results]</textarea>
+  </div>
+  <!--  height:200px; overflow:hidden convenience for DW wysiwyg -->
+  <div style="display:table-cell;white-space:nowrap;">
+    <br>
+	<ul>
+      <li>Pure JavaScript -- no JavaScript libraries -- no images</li>
+      <li>not pretty because very little  css  to avoid clutter </li>
+      <li>All sample script embeded in html page<br>
+        except  json include for huge list of objects
+      </li>
+      <li>shows use of all Fuse options except: <br>
+      searchFn, sortFn and getFn </li>
+      <li>works with fuse.js  or enhanced EZfuse.js</li>
+      <li>searchs with default field values after page loads</li>
+      <li><a href="https://github.com/krisk/Fuse/blob/master/README.md" target="new">Fuse README</a></li>
+      <li><a href="EZfuseREADME.md" target="new">EZfuse&nbsp;README</a></li>
+    </ul>
+  </div>
+  <hr>
+  <b>options:</b>
+  &nbsp;&nbsp;&nbsp;
+  <label>sort
+    <select name="fuzzy_sort" id="fuzzy_sort">
+      <option value="false">no sort</option>
+      <option value="true" selected>by score</option>
+      <option value="value">by value</option>
+      <option value="id">by ids</option>
+      <option value="keys">by keys</option>
+    </select>
+  </label>
+  <label>
+    <input name="fuzzy_caseSensitive" type="checkbox" id="fuzzy_caseSensitive">
+    case sensitive</label>
+  &nbsp;&nbsp;&nbsp;
+  <label>
+    <input name="fuzzy_searchTime" type="checkbox" id="fuzzy_searchTime">
+    search time</label>
+  <br>
+  &nbsp;&nbsp;
+  <label>
+    <input name="fuzzy_callback" type="checkbox" id="fuzzy_callback">
+  use callback</label>
+&nbsp; &nbsp;
+<label>cancel after
+  <input name="fuzzy_cancelTime" type="text" id="fuzzy_cancelTime" value="1000"
+  style="width:50px">
+ms</label>
+&nbsp;&nbsp;&nbsp;
+<label> pause every
+  <input name="fuzzy_pauseTime" type="text" id="fuzzy_pauseTime" value="500" size="5">
+  ms</label>
+<br>
+&nbsp;&nbsp;&nbsp;
+location
+  <input name="fuzzy_location" type="text" id="fuzzy_location" value="0" size="5">
+&nbsp;&nbsp;&nbsp;
+  distance
+  <input name="fuzzy_distance" type="text" id="fuzzy_distance" value="5" size="5">
+&nbsp;&nbsp;&nbsp;
+  threshold
+  <input name="fuzzy_threshold" type="text" id="fuzzy_threshold" value="0.4" size="5">
+  <br>
+&nbsp;&nbsp;&nbsp;
+  <label>max search text length
+    <input name="fuzzy_maxPatternLength" type="text" id="fuzzy_maxPatternLength" value="32" size="5">
+  </label>
+  &nbsp;&nbsp;
+  <label>
+    <input name="fuzzy_truncateSearchText" type="checkbox" id="fuzzy_truncateSearchText" checked>
+    truncate search text</label>
+  <br>
+  <b>include searcher values . . .</b>
+  <br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <label>score
+    <select name="fuzzy_score" id="fuzzy_score" class="include">
+      <option value="none">not included</option>
+      <option value="item">item property</option>
+      <option value="array">separate array</option>
+      <option value="item array" selected>item and array</option>
+    </select>
+    &nbsp;&nbsp;&nbsp;
+ item keys
+ <select name="fuzzy_itemKeys" id="fuzzy_itemKeys" class="include">
+   <option value="none">not included</option>
+   <option value="item">item property</option>
+   <option value="array">separate array</option>
+   <option value="item array" selected>item and array</option>
+ </select>
+<br>
+  </label>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <label> offsets
+  <select name="fuzzy_offsets" id="fuzzy_offsets" class="include">
+    <option value="none">not included</option>
+    <option value="item">item property</option>
+    <option value="array">separate array</option>
+    <option value="item array" selected>item and array</option>
+  </select>
+</label>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<label>locations
+  <select name="fuzzy_locations" id="fuzzy_locations" class="include">
+    <option value="none">not included</option>
+    <option value="item">item property</option>
+    <option value="array">separate array</option>
+    <option value="item array" selected>item and array</option>
+  </select>
+</label>
+<br>
+<hr>
+    <input type="button" value="new Fuse() &amp; search" onClick="run('init')">
+    <input type="button" value="search" onClick="run()">
+  <label> </label>
+&nbsp;&nbsp;&nbsp;
+<label> max results:
+  <input name="fuzzy_maxResults" type="text" id="fuzzy_maxResults" size="5">
+</label>
+<hr>
+  <div style="float:left">
+    <label>
+      <input name="list" type="radio" id="list_str" value="strings">
+      list of 
+      Strings</label>
+    <b><br>
+    search for:</b> <br>
+    <input name="searchTextStr" type="text" id="searchTextStr" value="pear" size="12">
+    <br>
+    <b>returned Array:</b><br>
+    <label>
+      <input name="fuzzy_itemResults" type="radio" id="fuzzy_itemIndex" checked>
+      indexes</label>
+    <br>
+    <label>
+      <input name="fuzzy_itemResults" type="radio" id="fuzzy_itemValue">
+       item values</label>
+    <br>
+    <textarea rows="20" cols="10" id="items_strings" name="items_strings">banana
+orange
+pear
+peach
+apple
+</textarea>
+  </div>
+  <div style="float:left">
+    &nbsp;&nbsp;&nbsp;
+  </div>
+  <div style="float:left">
+    <label>
+      <input name="list" type="radio" id="list_obj" value="objects" checked>
+      small list of Objects</label>
+    &nbsp;&nbsp;&nbsp;
+    TODO:
+    <label>
+      <input name="list" type="radio" id="list_obj_huge">
+      huge list of Objects</label>
+    <br clear="all">
+    <b>search for:</b>&nbsp;&nbsp;&nbsp;
+    <input name="searchTextObj" type="text" id="searchTextObj" value="dan" size="32">
+    <br>
+    <b>search keys:</b>
+    <input name="fuzzy_keys" type="text" id="fuzzy_keys" value="author.firstName,title" size="32">
+    <br>
+    &nbsp;&nbsp;&nbsp;<b> sort keys:</b>
+    <input name="fuzzy_sortKeys" type="text" id="fuzzy_sortKeys" value="author.firstName,title" size="32">
+    <br>
+    <b>&nbsp;return id(s):</b>
+    <input name="fuzzy_id" type="text" id="fuzzy_id" value="title, author.firstName" size="32">
+	<br>
+    <textarea rows="25" cols="45" id="items_objects" name="items_objects">[{
+  title: "Old Man's War",
+  author: {firstName: "John", lastName: "Scalzi"}
+},{
+  title: "The Lock Artist",
+  author: {firstName: "Steve", lastName: "Hamilton"}
+},{
+  title: "HTML5",
+  author: {firstName: "Remy", lastName: "Sharp"}
+},{
+  title: "Right Ho Jeeves",
+  author: {firstName: "P.D", lastName: "Woodhouse"}
+},{
+  title: "The Code of the Wooster",
+  author: {firstName: "P.D", lastName: "Woodhouse"}
+},{
+  title: "Thank You Jeeves",
+  author: {firstName: "P.D", lastName: "Woodhouse"}
+},{
+  title: "The DaVinci Code",
+  author: {firstName: "Dan", lastName: "Brown"}
+},{
+  title: "The Book of Samson",
+  author: {firstName: "David", lastName: "Maine"}
+},{
+  title: "Angels &amp; Demons",
+  author: {firstName: "Dan", lastName: "Brown"}
+},{
+  title: "The Silmarillion",
+  author: {firstName: "J.R.R", lastName: "Tolkien"}
+},{
+  title: "Syrup",
+  author: {firstName: "Max", lastName: "Barry"}
+},{
+  title: "The Lost Symbol",
+  author: {firstName: "Dan", lastName: "Brown"}
+},{
+  title: "The Book of Lies",
+  author: {firstName: "Brad", lastName: "Meltzer"}
+},{
+  title: "Lamb",
+  author: {firstName: "Christopher", lastName: "Moore"}
+},{
+  title: "Fool",
+  author: {firstName: "Christopher", lastName: "Moore"}
+},{
+  title: "Incompetence",
+  author: {firstName: "Rob", lastName: "Grant"}
+},{
+  title: "Fat",
+  author: {firstName: "Rob", lastName: "Grant"}
+},{
+  title: "Colony",
+  author: {firstName: "Rob", lastName: "Grant"}
+},{
+  title: "Backwards, Red Dwarf",
+  author: {firstName: "Rob", lastName: "Grant"}
+},{
+  title: "The Grand Design",
+  author: {firstName: "Stephen", lastName: "Hawking"}
+},{
+  title: "The Preservationist",
+  author: {firstName: "David", lastName: "Maine"}
+},{
+  title: "Fallen",
+  author: {firstName: "David", lastName: "Maine"}
+},{
+  title: "Monster 1959",
+  author: {firstName: "David", lastName: "Maine"}
+}]</textarea>
+</div>
+<pre style="float:left;padding-left:15px"><b>JavaScript:</b>
+
+<span id="fuzzy_options">[options]</span>
+
+<span id="fuzzy_code">[code]</span>
+</pre>
+<br clear="all">
+<hr>
+ <div style="float:left">
+    <label>
+      <input name="list" type="radio" id="list_regex" value="regex">
+      list of RegExp Strings</label>
+    <input style="float:right;margin:0 5px 0 15px" type="button" value="search" onClick="run()">
+    <input style="float:right" type="button" value="new Fuse() &amp; search" onClick="run('init')">
+    <br clear="all">
+    <b>search for:</b>
+    <input name="searchTextRegEx" type="text" id="searchTextRegEx" value="" size="45">
+    <br>
+location:
+  <input name="fuzzy_location_regex" type="text" id="fuzzy_location_regex" value="0" size="5">
+&nbsp;&nbsp;&nbsp;
+  distance:
+  <input name="fuzzy_distance_regex" type="text" id="fuzzy_distance_regex" value="5" size="5">
+&nbsp;&nbsp;&nbsp;
+  threshold:
+  <input name="fuzzy_threshold_regex" type="text" id="fuzzy_threshold_regex" value="0.4" size="5">
+<br>
+    <textarea rows="25" cols="55" id="items_regex" name="items_regex">
+    </textarea>
+  </div>
+</form>
+<script LANGUAGE="JavaScript">
+
+function Minimize() 
+{
+window.innerWidth = 100;
+window.innerHeight = 100;
+window.screenX = screen.width;
+window.screenY = screen.height;
+alwaysLowered = true;
+}
+
+function Maximize() 
+{
+window.innerWidth = screen.width;
+window.innerHeight = screen.height;
+window.screenX = 0;
+window.screenY = 0;
+alwaysLowered = false;
+}
+</script>
+
+<a HREF="javascript:onClick=Minimize()">Minimize</a>
+<a HREF="javascript:onClick=Maximize()">Maximize</a>
+</body>
+</html>

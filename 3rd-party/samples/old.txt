@@ -1,0 +1,133 @@
+[
+  {
+    "item": {
+      "title": "The DaVinci Code",
+      "author": {
+        "firstName": "Dan"
+      }
+    },
+    "score": 0.07272727272727272,
+    "matchedKeys": [
+      "title",
+      "author.firstName"
+    ],
+    "offsets": {
+      "title": [
+        4,
+        7
+      ],
+      "author.firstName": [
+        0,
+        6
+      ]
+    }
+  },
+  {
+    "item": {
+      "title": "The Book of Samson",
+      "author": {
+        "firstName": "David"
+      }
+    },
+    "score": 0,
+    "matchedKeys": [
+      "author.firstName"
+    ],
+    "offsets": {
+      "author.firstName": [
+        0,
+        3
+      ]
+    }
+  },
+  {
+    "item": {
+      "title": "Angels & Demons",
+      "author": {
+        "firstName": "Dan"
+      }
+    },
+    "score": 0.3333333333333333,
+    "matchedKeys": [
+      "author.firstName"
+    ],
+    "offsets": {
+      "author.firstName": [
+        0,
+        6
+      ]
+    }
+  },
+  {
+    "item": {
+      "title": "The Lost Symbol",
+      "author": {
+        "firstName": "Dan"
+      }
+    },
+    "score": 0.3333333333333333,
+    "matchedKeys": [
+      "author.firstName"
+    ],
+    "offsets": {
+      "author.firstName": [
+        0,
+        6
+      ]
+    }
+  },
+  {
+    "item": {
+      "title": "The Preservationist",
+      "author": {
+        "firstName": "David"
+      }
+    },
+    "score": 0,
+    "matchedKeys": [
+      "author.firstName"
+    ],
+    "offsets": {
+      "author.firstName": [
+        0,
+        3
+      ]
+    }
+  },
+  {
+    "item": {
+      "title": "Fallen",
+      "author": {
+        "firstName": "David"
+      }
+    },
+    "score": 0,
+    "matchedKeys": [
+      "author.firstName"
+    ],
+    "offsets": {
+      "author.firstName": [
+        0,
+        3
+      ]
+    }
+  },
+  {
+    "item": {
+      "title": "Monster 1959",
+      "author": {
+        "firstName": "David"
+      }
+    },
+    "score": 0,
+    "matchedKeys": [
+      "author.firstName"
+    ],
+    "offsets": {
+      "author.firstName": [
+        0,
+        3
+      ]
+    }
+  }
+]

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>simple drag</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css"/>
+<style type="text/css">
+.glyphicon {
+  position: relative;
+  top: 1px;
+  display: inline-block;
+  font-family: 'Glyphicons Halflings';
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+</style>
+<script type="text/javascript" src="Sortable.js"></script>
+<script type="text/javascript">
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function setup()
+{
+	// List with handle
+	Sortable.create(listWithHandle, {
+	  handle: '.glyphicon-move',
+	  animation: 150
+	});
+	
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function setupSortable(list)
+{
+	list.sortable = EZsortable.create(list, 
+	{
+		group: {name: "checklist", pull: 'clone', put: true},
+		filter: ".delete",		//specifies selector of tags that call onFilter onMouseDown
+		draggable: '.dragable',	//toArray() only returns these elements (used by sort)
+		handle: ".drag-handle",	//specifies selector of drag handle tag
+		animation: 50,			//sort annimation delay but think store must be configured to sort
+								//automatically after item moved -- radio button do sort on demand
+		
+		onStart:function(evt)
+		{ 	// called after move starts -- not on mousedown				
+			console.log('onStart:', [evt.item, evt.from, evt.clone]);
+			
+			EZremoveClass(evt.srcElement, 'notDragging');		//ul containing item being moved
+			if (evt.clone && evt.item.exportProp)				//copy exportProp to clone kept when...
+				evt.clone.exportProp && evt.item.exportProp;	//...item copied to another list
+		},
+		onMove: function (evt)
+		{ 	//called everytime item moved diff allowed position above or below draggable item
+			console.log('onMove:', [evt.dragged, evt.from]);
+			
+			// draggable selector controls where items can move -- css hides drag handle
+			var status = evt;	//evt must be returned to allow move
+			return status;		//return false if move disallowed 
+		},
+		onUpdate: function (evt)
+		{	// called after item moved -- before sort
+			console.log('onUpdate:', [evt.item, evt.from]); 
+			return false;
+		},
+		onSort:function(evt)
+		{ 	// called once for each list after updating with item in new position
+			console.log('onSort:', [evt.item, evt.from]);
+		},
+		onEnd: function(evt)
+		{ 	// called after move completed even if item not moved to new position
+			console.log('onEnd:', [evt.item, evt.from]);
+			
+			EZsetValue(evt.from.sortButtons, 'none');	//set from sort "as displayed"
+			EZaddClass(evt.from, 'notDragging');		//add back class to display item text
+			var toList = getExtractList(evt.item);
+			if (toList != evt.from)						//if item moved to new list . . .
+			{
+				EZsetValue(toList.sortButtons, 'none');	//sort setting in target list
+				updateCount(toList, 1);
+				var el = evt.item.getElementsByClassName('name')[0];
+				var val = EZgetValue(el);
+				if (val.right(1) != '+')
+					EZsetValue(el, val + '+');
+			}
+		},
+		onFilter: function(evt)
+		{	// called onMouseDown for elements containing filter selector
+			console.log('onFilter:', [evt.item, evt.from]);
+			
+			var idx = g.highlighted.indexOf(evt.item);		
+			if (idx != -1) 
+				g.highlighted.splice(idx,1);				//delete from selected array
+			
+			DWfile.remove(evt.item.extractProp.toPath);	//delete extracted file
+			if (!evt.item.extractProp || !evt.item.extractProp.toPath)
+				return;
+			evt.item.parentNode.removeChild(evt.item)	//delete from extracted list
+			updateCount(evt.from, -1);
+		},
+		name: 50
+	});
+	function updateCount(list, increment)
+	{
+		var node = getExtractNode(list);
+		var el = node.getElementsByClassName('extractedCount')[0];
+		EZsetValue(el, EZgetInt(el) + increment);
+	}
+}
+</script>
+</head>
+<body onLoad="setup()">
+  
+<!-- List with handle -->
+  <div id="listWithHandle" class="list-group">
+    <div class="list-group-item">
+      <span class="badge">14</span>
+      <span class="glyphicon glyphicon-move" aria-hidden="true"></span>
+      Drag me by the handle
+    </div>
+    <div class="list-group-item">
+      <span class="badge">2</span>
+      <span class="glyphicon glyphicon-move" aria-hidden="true"></span>
+      You can also select text
+    </div>
+    <div class="list-group-item">
+      <span class="badge">1</span>
+      <span class="glyphicon glyphicon-move" aria-hidden="true"></span>
+      Best of both worlds!
+    </div>
+  </div>
+</body>
+</html>

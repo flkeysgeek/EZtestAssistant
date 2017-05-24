@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!-- saved from url=(0033)http://rubaxa.github.io/Sortable/ -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta property="og:image" content="/st/og-image.png">
+<title>Sortable. No jQuery.</title>
+<meta name="keywords" content="sortable, reorder, list, javascript, html5, drag and drop, dnd, animation, groups, angular, ng-sortable, react, mixin, effects, rubaxa">
+<meta name="description" content="Sortable - is a minimalist JavaScript library for reorderable drag-and-drop lists on modern browsers and touch devices. No jQuery. Supports Meteor, AngularJS, React and any CSS library, e.g. Bootstrap.">
+<meta name="viewport" content="width=device-width, initial-scale=0.5">
+<link href="Sortable_files/app.css" rel="stylesheet" type="text/css">
+
+<script type="application/javascript">
+function setup()
+{
+	var list = document.getElementById("foo");
+	Sortable.create(list, {
+		group: "words",
+		animation: 150,
+		store: {
+			get: function (sortable) {
+				var order = localStorage.getItem(sortable.options.group);
+				return order ? order.split('|') : [];
+			},
+			set: function (sortable) {
+				var order = sortable.toArray();
+				localStorage.setItem(sortable.options.group, order.join('|'));
+			}
+		},
+		onAdd: function (evt){ console.log('onAdd.foo:', [evt.item, evt.from]); },
+		onUpdate: function (evt){ 
+			console.log('onUpdate.foo:', [evt.item, evt.from]); },
+		onRemove: function (evt){ console.log('onRemove.foo:', [evt.item, evt.from]); },
+		onStart:function(evt){ 
+			console.log('onStart.foo:', [evt.item, evt.from]);},
+		onSort:function(evt){ console.log('onStart.foo:', [evt.item, evt.from]);},
+		onEnd: function(evt){ 
+			console.log('onEnd.foo:', [evt.item, evt.from]);
+		}
+	});
+}
+</script>
+</head>
+<body onLoad="setup()">
+
+<!-- Connected lists -->
+<div class="container" style="height: 520px">
+  <div data-force="30" class="layer block" style="left: 14.5%; top: 0; width: 37%">
+    <ul id="foo" class="block__list block__list_words">
+      <li>антон</li>
+      <li>краб</li>
+      <li>корм</li>
+      <li>сало</li>
+      <li>бегемот</li>
+      <li>железосталь</li>
+      <li>валик</li>
+      <li>кровать</li>
+    </ul>
+  </div>
+</div>
+<script src="Sortable_files/Sortable.js"></script> 
+
+<!-- highlight.js -->
+
+</body>
+</html>

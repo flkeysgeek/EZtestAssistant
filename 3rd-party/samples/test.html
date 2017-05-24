@@ -1,0 +1,75 @@
+<HTML>
+<HEAD>
+<TITLE>Untitled Document</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#FFFFFF">
+
+</BODY>
+<script type="text/javascript">
+// if (window.EZ) window.EZ = function EZ() {}
+(function(global) 
+{
+	//____________________________________________________________________________________
+	/**
+	 *	
+		if (this instanceof arguments.callee) 	//if not called as constructor...
+		{
+			this.msg();
+			message();
+		}
+	 */
+	function EZtester()				//constructor
+	{
+		var x = 9;
+		this.options = {a:1, b:2}
+		this.testdata = [1,2, 3];
+		message.ctx = this;
+		this.m = function()
+		{
+			console.log(this.options, arguments)
+		}
+		//return this;
+	}
+	EZtester.prototype.load = function EZtester_load()
+	{
+		this.opts = this.options;
+		this.o = 5;
+debugger;
+		Fuse.call(this)
+		message()
+		this.m();
+		this.load.updateMenu();
+	}
+	EZtester.prototype.load.updateMenu = function ()
+	{
+		
+		console.log(this.options, this.opts, this.o)
+	}
+	function Fuse(list, options) 
+	{
+		console.log(this.options, arguments)
+	}
+	EZtester.msg = function EZtester_msg(list, options) 
+	{
+		console.log(this.options, arguments)
+		void(0);
+	}
+	var message = function message() 
+	{
+		console.log(message.ctx.options, arguments)
+		void(0);
+	}
+
+	if (!global.EZ) global.EZ = function EZ() {}
+	global.EZ.tester = new EZtester();
+	//global.Fuse = Fuse;
+
+})(window);
+/*--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------*/
+//f = new Fuse()
+//t = new EZ.tester()
+//t.load()
+</script>
+</HTML>

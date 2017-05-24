@@ -1,0 +1,5 @@
+ZeroClipboard.js and ZeroClipboard.swf copied to html folder
+
+zeroClipboard.EZtest_assistant.js contains script used
+
+replaced by EZ.clipboard() -- while allows copy to clip board w/o click

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>extract drag</title>
+<style type="text/css">
+th {
+	cursor: move;
+}
+th {
+	display: inline-block;
+	margin-right: 4px;
+	white-space: normal;
+	border: 0px solid #FFFFD0;
+	box-shadow: 2px 2px 7px grey;
+	border-top: none;
+	border-right: none;
+	border-bottom: none;
+	border-radius: 5px;
+	padding: 1px 1px;
+	background-color: #FFDEAD;
+}
+</style>
+<link href="../../css/EZcommon.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="Sortable.js"></script>
+<script type="text/javascript">
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function setup()
+{
+	var list = document.getElementById('sortable');
+	Sortable.create(list, 
+	{
+		//handle: ".dragable"	//specifies selector of drag handle tag
+	});
+}
+</script>
+</head>
+<body onLoad="setup()">
+<table>
+  <thead id="sortable">
+    <tr>
+    <th class="fieldname_RNAME"><input type="checkbox"><br>
+      <div class="spacer">
+      NAME<br>
+      <i>varchar</i>
+      </div>
+    </th>
+    <th class="fieldname_RID"><input type="checkbox"><br>
+    <div class="spacer">
+    ID<br>
+    <i>integer</i>
+    </div>
+    </th>
+    </tr>   
+  </thead>
+</table>
+</body>
+</html>

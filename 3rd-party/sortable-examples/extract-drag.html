@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>extract drag</title>
+<style type="text/css">
+#sortable {
+	zlist-style: none;
+}
+.dragHandle, .dragable {
+	cursor: move;
+}
+.dragable:before {
+	content: "zzz";
+}
+
+</style>
+<link href="../../css/EZcommon.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="Sortable.js"></script>
+<script type="text/javascript">
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function setup()
+{
+	var list = document.getElementById('sortable');
+	Sortable.create(list, 
+	{
+		//handle: ".dragable"	//specifies selector of drag handle tag
+	});
+}
+</script>
+</head>
+<body onLoad="setup()">
+<ul id="sortable" class="notDragging">
+  <li class="dragable">
+      <span class="name">Item 1</span>
+  </li>
+  <li class="dragable">
+    <span class="drag-handle">&#9776;</span>
+      <span class="name">Item 2</span>
+  </li>
+  <li class="dragable">
+    <span class="drag-handle">&#9776;</span>
+      <span class="name">Item 3</span>
+  </li>
+ </ul>
+</body>
+</html>

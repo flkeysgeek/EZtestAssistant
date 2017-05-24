@@ -1,0 +1,48 @@
+@charset "utf-8";
+/* CSS Document */
+.designTimeShort {
+ 	height:100px !important; 
+	overflow:hidden !important;
+}
+
+body .showInDesign, body .showInDesign * {
+	display: inherit !important;
+	background-color: #DDD0FB;
+}
+
+body .hidden {
+	display: block !important;
+	background-color: #DDD0FB;	/* pale purple */
+}
+body .invisible {
+	visibility: block !important;
+	background-color: #DDD0FB;	/* #F5BB79; */
+}
+body .debug {
+	display: block !important;
+	background-color: #E8E8E8;	/* grey */
+}
+body .simulator {
+	display: block !important;
+	background-color: #BDF7A5;	/* pale green?? */
+}
+
+body .designMoveUp {
+	top: -50px !important;
+}
+body .designMoveDown {
+	top: 50px !important;
+}
+body .designMoveDownLots {
+	top: 150px !important;
+}
+body .designMoveRight {
+	left: 50px !important;
+}
+body .designMoveLeft {
+	left: -50px !important;
+}
+.designBack {
+	z-index: -999 !important;
+}
+
