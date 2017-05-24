@@ -1,0 +1,54 @@
+____0@ <span id="EZ_71212349_0">(HTMLDivElement): </span>
+   tagName: DIV¬
+   parent: <form action="" method="p...
+   id: EZtest_wrap¬
+____1@  style (CSSStyleDeclaration):
+      •all values blank•
+1____@
+____1@ <a name="EZ_71212349_2"></a> <span id="EZ_71212349_2" class="repeat EZ_undefined">childNodes (NodeList) [7]: repeated x3</span>
+  ____2@ [0] (Text) •blank•
+2____@
+  ____2@ [1] (HTMLLabelElement)
+         tagName: LABEL¬
+         parent: <div id="EZtest_wrap">¬
+         id: EZtest_input¬
+     ____3@  style (CSSStyleDeclaration):
+            •all values blank•
+3____@
+     ____3@  childNodes (NodeList) [3]:
+            ...repeat of:<a href="#71212349_2">HTMLDivElement.childNodes</a>
+3____@
+2____@
+  ____2@ [2] (Text) •blank•
+2____@
+  ____2@ [3] (HTMLUnknownElement)
+         tagName: EZTEST_TAG¬
+         parent: <div id="EZtest_wrap">¬
+         id: EZtest_tag0¬
+         class: EZtest_class0¬
+     ____3@  style (CSSStyleDeclaration):
+            •all values blank•
+3____@
+     ____3@  childNodes (NodeList) [5]:
+            ...repeat of:<a href="#71212349_2">HTMLDivElement.childNodes</a>
+3____@
+2____@
+  ____2@ [4] (Text) •blank•
+2____@
+  ____2@ [5] (HTMLUnknownElement)
+         tagName: EZTEST_TAG¬
+         parent: <div id="EZtest_wrap">¬
+         id: EZtest_tag1¬
+         class: EZtest_class1¬
+     ____3@  style (CSSStyleDeclaration):
+            •all values blank•
+3____@
+     ____3@  childNodes (NodeList) [5]:
+            ...repeat of:<a href="#71212349_2">HTMLDivElement.childNodes</a>
+3____@
+2____@
+  ____2@ [6] (Text) •blank•
+2____@
+   1____@
+0____@
+"

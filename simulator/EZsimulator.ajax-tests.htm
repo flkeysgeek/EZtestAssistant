@@ -1,0 +1,245 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>EZ Java Simulator Test Platform</title>
+<link rel="shortcut icon" href="EZdw.simulator.png" />
+<script type="text/javascript" src="../js/EZprototypes.js"></script>
+<script type="text/javascript" src="../js/EZcore.js"></script>
+<script type="text/javascript" src="../js/common.js"></script>
+<link type="text/css" href="../css/EZcommon.css" rel="stylesheet">
+<style type="text/css">
+body *, body input {font-size: 100%}
+.textBox {
+	padding: 5px;
+	font: 12px Arial,Helvetica,sans-serif;
+	border: 2px solid #C00;	/* red */
+	background: #FEFEC8;
+	overflow: scroll;
+  	max-height: 300px;
+}
+results {
+	white-space: pre;
+	font-family: monospace;
+}
+</style>
+<script type="text/javascript">
+/*******************************************************/
+/*BOOKMARK -----useful when testing as standalone pgge*/
+/*****************************************************/
+/*---------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+function setup()
+{
+	var fm = document.forms[0];
+//	fm.fn.selectedIndex = <%= fnIndex + 1 %>;
+//	fm.constraint.selectedIndex = <%= constraintIndex %>;
+//	fm.mode.selectedIndex = <%= mode.equals("append") ? 0 : 1 %>;
+}
+/*---------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+function processPref(fn, mode)
+{
+	var fm = document.forms[0];
+	var results = '';
+	var group = fm.pref_group.value;
+	var key = fm.pref_key.value;
+	var value = fm.pref_value.value;
+	var defaultValue = fm.pref_defaultValue.value;
+	switch(fn+mode)
+	{
+		case 'getstring': results = dw.getPreferenceString(group,key,defaultValue); break;
+		case 'setstring': results = dw.setPreferenceString(group,key,value); break;
+		case 'getint'   : results = dw.getPreferenceInt(group,key,defaultValue); break;
+		case 'getint'   : results = dw.getPreferenceInt(group,key,value); break;
+	}
+	EZsetValue('pref_results', results);
+	EZsetValue('pref_resultsType', typeof results);
+}
+/*---------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+function setURL(el, value)
+{
+	var fm = document.forms[0];
+	fm[el].value = value.replace(/.*[\/\\](.*)/, '$1');
+}
+/*---------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+function callDWfile()
+{
+	var results = 'Select DWfile function';
+	var fm = document.forms[0];
+	var fileURL = fm.fileURL.value;
+	var copyURL = fm.copyURL.value;
+	var fn = fm.fn.options[fm.fn.selectedIndex].value;
+	var constraint = fm.constraint.options[fm.constraint.selectedIndex].value;
+	var mode = fm.mode.options[fm.mode.selectedIndex].value;
+	var text = fm.text.value;
+
+	switch(fn)
+	{
+		case 'exists': results = DWfile.exists(fileURL); break;
+		case 'read':
+		{
+			results = DWfile.read(fileURL);
+			EZsetValue('text', results);
+			break;
+		}
+		case 'write':	results = DWfile.write(fileURL, text, mode); break;
+		case 'remove':	results = DWfile.remove(fileURL); break;
+		case 'getSize':	results = DWfile.getSize(fileURL); break;
+		case 'copy':
+		{
+			text = DWfile.read(fileURL);
+			if (text == null) return false;
+			results = DWfile.write(copyURL,text);
+			break;
+		}
+		case 'listFolder': results = DWfile.listFolder(fileURL,constraint); break;
+	}
+	var results_type = typeof(results);
+	if (results_type == 'object' && Array.isArray(results))
+		results_type = 'array length=' + results.length;
+	EZsetValue('ajax_type', results_type);
+	EZsetValue('ajax_results', results);
+}
+/*---------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+</script>
+</head>
+<body>
+<form action="" method="get" name="theForm" onsubmit="return validateForm(this)">
+  <div class="heading" id="parameters">
+    <!-- useful when testing as standalone pgge -->Dreamweaver Simulator Ajax Test Tool -- <span class="redBG">may not be up-to-date</span><br />
+  <table width="100%" border="0" cellspacing="5" cellpadding="0">
+    <tbody>
+      <tr>
+        <td>
+          <span class="floatLeft">
+            <input type="button" value="getPreferenceString" onclick="processPref('get','string')"/>
+            </span>
+        </td>
+        <td>
+          <span class="floatLeft">
+            <input type="button" value="getPreferenceInt" onclick="processPref('get','int')"/>
+            </span>
+        </td>
+        <td align="right">
+          group
+        </td>
+        <td>
+          <input name="pref_group" type="text" id="pref_group" value="EZ Preferences" size="30" />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <span class="floatLeft">
+            <input type="button" value="setPreferenceString" onclick="processPref('set','string')"/>
+            </span>
+        </td>
+        <td>
+          <span class="floatLeft">
+            <input type="button" value="setPreferenceInt" onclick="processPref('set','int')"/>
+            </span>
+        </td>
+        <td align="right">
+          key
+        </td>
+        <td>
+          <input name="pref_key" type="text" id="pref_key" value="logging" size="30" />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          dwBaseKey (version)
+        </td>
+        <td>
+          <input name="pref_dwBaseKey" type="text" id="pref_dwBaseKey" value="Dreamweaver CC 2014.1" size="30" />
+        </td>
+        <td align="right">
+          value
+        </td>
+        <td>
+          <input name="pref_value" type="text" id="pref_value" value="true" size="30" />
+        </td>
+      </tr>
+      <tr>
+        <td>
+        result[<span id="pref_resultsType">...</span>]:
+        </td>
+        <td>
+          <input name="pref_results" type="text" id="pref_results" size="30" />
+        </td>
+        <td align="right">
+          default
+        </td>
+        <td>
+          <input name="pref_defaultValue" type="text" id="pref_defaultValue" size="30" />
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <input type="hidden" name="pref_fn" id="pref_fn" />
+  <input type="hidden" name="pref_mode" id="pref_mode" />
+<hr>
+  configPath:
+<input name="configPath" type="text" id="configPath" value="C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/" size="100" />
+<hr>
+<div class="floatLeft">
+  &nbsp;
+  <input type="button" value="DWfile" onclick="callDWfile()"/>
+    <select name="fn" id="fn">
+      <option >-select-</option>
+      <option selected value="exists">exists</option>
+      <option value="read">read</option>
+      <option value="write">write</option>
+      <option value="remove">remove</option>
+      <option value="getSize">getSize</option>
+      <option value="copy">copy</option>
+      <option value="listFolder">listFolder</option>
+    </select>
+</div>
+  <div class="floatRight">
+    Select fileURL
+  <input type="file" name="fileURLBrowse" id="fileURLBrowse"
+    		onchange="setURL('fileURL', this.value)"/>
+  </div>
+<br />
+<div class="floatClear">
+  &nbsp;&nbsp;&nbsp;fileURL:
+  <input  class="large" name="fileURL" type="text" id="fileURL" value="C:/Users/Dell/AppData/Roaming/Adobe/Dreamweaver CC 2014.1/en_US/Configuration/Extensions.txt" size="100" />
+</div>
+<br />
+    listFolder constraint
+  <select name="constraint" id="constraint">
+    <option value="-" selected="selected">files and folders</option>
+    <option value="files">files only</option>
+    <option value="directories">directories</option>
+  </select>
+    write mode
+  <select name="mode" id="mode">
+    <option value="" selected="selected">overwrite</option>
+    <option value="append">append</option>
+  </select>
+  select copyURL
+  <input type="file" name="copyURLBrowse" id="copyURLBrowse"
+    		onchange="setURL('copyURL', this.value)"/>
+  <br />
+copyURL:
+<input name="copyURL" type="text" id="copyURL" size="100" />
+<br />
+    text read / text to write:<br />
+<textarea name="text" cols="100" rows="5" id="text" style="width:100%"></textarea>
+  </div>
+  <br />
+
+
+<b>ajax results[<span id="ajax_type">...</span>]:</b>
+<pre id="ajax_results" class="textBox">...ajax_results...</pre>
+
+<b>ajax stacktrace:</b>
+<pre id="stacktrace" class="textBox">...stacktrace...</pre>
+
+</form>
+</body>
+</html>
