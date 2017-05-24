@@ -1,0 +1,478 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>EZtrace</title>
+<link href="EZtrace.png" rel="panel icon" />
+<script type="text/javascript">
+var EZ = {global:{ legacy:{} }};
+EZ.global.legacy.EZeventAdd = false;
+EZ.global.legacy.EZshowHide = false;
+EZ.global.legacy.EZclassAction = false;
+EZ.global.legacy.EZhasClass = false;
+EZ.global.legacy.EZtechSupport = false;
+EZ.global.legacy.EZdisplayMessage = false;
+EZ.global.legacy.EZoptions = false;
+</script>
+<script type="text/javascript" src="EZtrace.js"></script>
+<script type="text/javascript" src="../js/EZbasic.js"></script>
+<script type="text/javascript" src="../js/EZis.js"></script>
+<script type="text/javascript" src="../js/EZprototypes_only.js"></script>
+<script type="text/javascript" src="../js/EZadvanced.js"></script>
+<script type="text/javascript" src="../js/EZdebug.js"></script>
+
+<script type="text/javascript" src="../js/EZstringify.js"></script>
+<script type="text/javascript" src="../js/EZtoString.js"></script>
+
+<script type="text/javascript" src="../js/EZcore_pruned.js"></script>
+<script type="text/javascript" src="../js/EZcommon_pruned.js"></script>
+<script type="text/javascript" src="../js/EZcommonParse.js"></script>
+<script>
+/*---------------------------------------------------------------------------------------------
+	var group = EZ.trace.groups[name];
+	if (!group)
+		group = EZ.trace.groups[name] = defaultGroup;
+	else
+		group = EZ.mergeAll(defaultGroup, group);
+	
+	return group;
+---------------------------------------------------------------------------------------------*/
+function getGroup(name)
+{
+	var groupDefault = {
+		name: name,
+		status: '',
+		counts: {
+			active:0, hidden:0, filtered:0, total:0
+		},
+		time: null,
+		options: {},
+		messages: [],
+		messageList: [],
+		hiddenMessages: [],
+		updatedOptions: {}
+	}
+	var group = EZ.trace.groups[name];
+	if (!group)
+		updateGroupsList();
+	return EZ.mergeAll(groupDefault, group);
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function getDisplayUpdate(name)
+{
+	var getDisplayUpdate = EZ.trace.displayUpdates.groups[name] || {};
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+</script>
+<link type="text/css" href="../css/EZcommon.css" rel="stylesheet">
+<link type="text/css" href="../css/EZtoString.css" rel="stylesheet">
+<style type="text/css">
+body {
+	background-color: #FFF;
+	overflow: scroll;
+	font-size: 11px;
+	padding-bottom: 200px;
+}
+body.loading:not(.live) {
+	visibility: hidden;
+}
+#controls {
+	font-family: Arial;
+	position: fixed;
+	right: 0px;
+	left: 0px;
+	top: 0px;
+	margin: 0;
+	zheight: 38px;	/* if changed, check scrollTo(...) in goto() */
+	padding: 8px 5px 0;
+	border: 2px solid #C00;
+	background: #FEFEC8;
+}
+#controls pre {
+	color: #C00;
+	zfont-weight: bold;
+	font-size: 14px;
+	margin: 0 0 0 0;
+	zheight: 28px;
+	overflow: auto;
+}
+#rightButtons {
+	width: 18px;
+	margin: -7px 0 -4px;
+}
+#rightButtons input[type=image] {
+	margin: 1px;
+	outline: initial;	/* kill focus border on chrome */
+}
+#rightButtons input[type=image].debugEnabled {
+	margin: 0px;
+}
+#select {
+	width: 140px;
+}
+fieldset {
+	margin-top: -4px;
+	padding-bottom: 4px;
+	padding-top: 2px;
+	margin-bottom: 0px;
+}
+#filterNote {
+	min-width: 75px;
+	display: inline-block;
+}
+#messagesWrap {
+	overflow: auto;
+}
+pre#trace * {
+	font-family: monospace;
+	font-size: 10px;
+}
+h2, #trace {
+	margin: 0;
+}
+h2 {
+	font-size: 110%;<script type="text/javascript" src="EZtrace.js"></script>
+
+	margin-top: 4px;
+	background-color: #FFFFB4;
+}
+a.highlight + h2 {
+  	color: red;
+	background-color: #FCEBCB;
+}
+</style>
+</head>
+<body class="loading designView" onLoad="setup()" onResize="resize()">
+<a name="top" id="top"></a>
+<form>
+<div id="controls" style="" 
+	onChange="processAction(event)"
+    onClick="processAction(event)">
+  <div class="marginTopLess">
+    show
+    <label>
+      <input type="checkbox" name="showSpaces" id="showSpaces" class="format opt">
+      spaces</label>
+    <label>
+      <input type="checkbox" name="showNewlines" id="showNewlines" class="format opt">
+      newlines</label>
+    <img class="floatRight" src="../images/settings16.png" width="16" title="more settings"
+        onClick="EZtoggle('settingsPopup')"/> 
+    <!-------------------->
+    <!-- settings popup -->
+    <!-------------------->
+    <div id="settingsPopup" class="helpBox hidden absolute designFixed"
+    style="right:5px;top:3px;">
+    <img class="floatRight" src="../images/close.png" 
+      onClick="this.parentNode.style.display='none'" style="margin:0" /> 
+    <div class="sub-header">settings
+      <table border="0" align="center" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr>
+            <td valign="top">
+                <table width="80%" border="0" align="center" cellpadding="3" cellspacing="3">
+                  <tbody>
+                    <tr>
+                      <td colspan="2" align="" valign="middle" nowrap="nowrap">
+                        refresh messages
+                        every
+                        <input name="refreshSeconds" type="text" class="opt narrowVery smaller" id="refreshSeconds" value="1" />
+                        seconds
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="" valign="top" nowrap="nowrap">
+                        filter timer:
+                      </td>
+                      <td valign="top" nowrap="nowrap">
+                        auto apply
+                        <input name="filterAutoApply" type="text" class="opt narrowVery smaller" id="filterAutoApply" value="5" />
+                        seconds <br />
+                        after no filter change
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+            </td>
+            <td width="25" valign="top" >&nbsp;</td>
+            <td valign="top">
+              <br />
+              <fieldset id="traceOptions">
+                <legend>EZ.trace() page: <span id="tracePageName">na</span> </legend>
+                <table width="80%" border="0" align="center" cellpadding="3" cellspacing="3" class="invisible">
+                  <tbody>
+                    <tr>
+                      <td align="right" valign="middle" nowrap="nowrap">
+                        &nbsp;trace mode:
+                      </td>
+                      <td valign="middle" nowrap="nowrap">
+                        <label>
+                          <input type="radio" name="traceMode" value="true" id="traceMode_0" alt="mode" class="traceOption"/>
+                          on</label>
+                        <label>
+                          <input type="radio" name="traceMode" value="false" id="traceMode_1" alt="mode" class="traceOption"/>
+                          off</label>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="right" valign="middle" nowrap="nowrap">
+                        message format:
+                      </td>
+                      <td valign="middle" nowrap="nowrap">
+                        <label>
+                          <select name="traceFormat" id="traceFormat" alt="format" class="traceOption"
+                          onchange="processAction(event)">
+                            <option value="EZtoString">EZ.toString()</option>
+                            <option value="EZstringify">EZ.stringify()</option>
+                          </select>
+                        </label>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </fieldset>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <br>
+      <hr class="floatClear">
+      <br>
+      <table border="0" align="" cellpadding="0" cellspacing="5" class="floatClear">
+        <tr>
+          <td valign="top" class="sub-header">
+            stringify
+          </td>
+          <td rowspan="2" align="left" valign="top">
+            <fieldset>
+              <legend>&nbsp;<b>EZ.stringify</b> </legend>
+              <br>
+              <table width="100%" border="0" cellpadding="0" cellspacing="0" class="displayObjectOptions">
+                <tr>
+                  <td nowrap="nowrap">&nbsp;
+                  </td>
+                  <td width="5" nowrap="nowrap">&nbsp;
+                  </td>
+                </tr>
+              </table>
+            </fieldset>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" class="displayObjectOptions">
+              <tr>
+                <td align="right" nowrap="nowrap">
+                  &nbsp;indent spaces:&nbsp;
+                </td>
+                <td nowrap="nowrap">
+                  <input name="stringify_spaces" type="text" class="opt narrowVery" id="stringify_spaces" value="3" size="5">
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <br>
+      <hr class="floatClear">
+      <br>
+      <table border="0" align="center" cellpadding="0" cellspacing="5" class="floatClear">
+        <tbody>
+          <tr>
+            <td valign="top" class="sub-header">
+              EZ.toString
+            </td>
+            <td rowspan="2" align="left" valign="top">
+              <fieldset>
+                <legend>
+                <label class="bold">
+                  <input name="collapse" type="checkbox" class="opt" id="collapse" value="true" checked="checked">
+                  Collapse / Expand: </label>
+                </legend>
+                <br>
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" class="displayObjectOptions">
+                  <tbody>
+                    <tr>
+                      <td nowrap="nowrap">
+                        auto-collapse  at depth
+                      </td>
+                      <td nowrap="nowrap">
+                        &gt;
+                        <input name="collapsedepth" type="text" class="opt narrowVery" id="collapsedepth" value="3">
+                      </td>
+                    </tr>
+                    <tr>
+                      <td nowrap="nowrap">
+                        auto-collapse for ltems&nbsp;
+                      </td>
+                      <td nowrap="nowrap">
+                        &gt;
+                        <input name="collapsemaxlines" type="text" class="opt narrowVery" id="collapsemaxlines" value="10">
+                      </td>
+                    </tr>
+                    <tr>
+                      <td nowrap="nowrap">
+                        No collapse when Array<br>
+                        items / Object properties
+                      </td>
+                      <td width="5" valign="top" nowrap="nowrap">
+                        &lt;
+                        <input name="collapseminlines" type="text" class="opt narrowVery" id="collapseminlines" value="5">
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </fieldset>
+            </td>
+            <td rowspan="2" align="right" valign="top">
+              <fieldset>
+                <legend>development</legend>
+                <label> &nbsp;
+                  <input name="collaspe_showseqno" type="checkbox" value="true" id="collaspe_showseqno" class="opt">
+                  &nbsp;show object seqnos</label>
+                <br>
+                <label> &nbsp;
+                  <input name="collapse_show_markers" type="checkbox" value="true" id="collapse_show_markers" class="opt">
+                  &nbsp;show collaspe markers</label>
+                <br>
+                <label> &nbsp;
+                  <input name="collapse_show_depth" type="checkbox" value="true" id="collapse_show_depth" class="opt">
+                  &nbsp;show collaspe levels</label>
+                <br>
+                <label> &nbsp;
+                  <input name="collapse_keep_groups" type="checkbox" value="true" id="collapse_keep_groups" class="opt">
+                  &nbsp;no groups removed</label>
+                <br>
+                <label> &nbsp;
+                  <input name="collapse_nocleanup" type="checkbox" value="true" id="collapse_nocleanup" class="opt">
+                  &nbsp;skip empty line cleanup</label>
+              </fieldset>
+            </td>
+          </tr>
+          <tr>
+            <td valign="top">
+              <table width="100%" border="0" cellpadding="0" cellspacing="0" class="displayObjectOptions">
+                <tbody>
+                  <tr>
+                    <td colspan="2" nowrap="nowrap">
+                      <div>
+                        <label>
+                          <input name="toString_sortkeys" type="checkbox" value="true" id="toString_sortkeys" checked="checked" class="opt">
+                          &nbsp;sort Object keys</label>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" nowrap="nowrap">
+                      <div>
+                        <label>
+                          <input name="htmlformat" type="checkbox" value="true" id="htmlformat" checked="checked" class="opt">
+                          &nbsp;html format</label>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="right" nowrap="nowrap">
+                      &nbsp;max depth formatted:&nbsp;
+                    </td>
+                    <td nowrap="nowrap">
+                      <input name="maxdepth" type="text" class="opt narrowVery" id="maxdepth" value="3">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="right" nowrap="nowrap">
+                      &nbsp;max items formatted:&nbsp;
+                    </td>
+                    <td nowrap="nowrap">
+                      <input name="maxobjects" type="text" class="opt narrowVery" id="maxobjects" value="50">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+  </div>
+  </div>
+    </div>
+  <fieldset id="filterWrap" class="floatLeft" style="margin-top: -4px">
+    <legend>filter
+      <select name="filterWhat" id="filterWhat" class="filter opt">
+      <option value="head" selected>headings</option><option value="text">msg text</option>
+        <option value="both">both</option>
+      </select>&nbsp;
+	  <label>
+        <input name="filterIgnoreCase" type="checkbox" class="filter opt" 
+      	  id="filterIgnoreCase" value="true" checked="checked" />
+		ignore case</label><label>
+      <input name="filterRegex" type="checkbox" class="filter opt" 
+      	id="filterRegex" value="true">
+       regex</label>&nbsp;&nbsp;
+        <b id="filterDisabledNote" class="hidden errorNote">Disabled</b>
+        <a href="javascript:void(filterToggle()" id="filterShowAll"
+         class="hidden">show all</a>
+    </legend>
+    <input type="text" name="filterText" id="filterText" class="filter opt"
+        onLoad="EZ.event.add(this, 'onKeyup', filterChange, 100);"
+        onChange="//filterChange()"
+        onKeyDown="if (event.keyCode == 13) filterChange(true)" />
+    <img src="../images/go.png" width="16" height="16" style="vertical-align: middle;"
+      	onClick="filterChange(true)"/>
+    <select name="filterShow" id="filterShow" class="filter opt">
+      <option value="true" selected>show</option>
+      <option value="false">hide</option>
+    </select>
+    &nbsp;<a href="javascript:void(filterToggle())" id="hideCountTag">[# filtered]</a>
+  </fieldset>
+  
+  <div id="rightButtons" class="floatRight" align="center">
+    <img class="valignMiddle nosaveImage"
+        src="../images/stop.png" width="16" height="16" title="do not save" 
+      	onclick="window.EZ.debug.setSaveSuspended(event)">
+    <input type="image" class="debugImage" title="debug"
+  		onClick="window.EZ.debug(this)" src="../images/debug16.png" width="16" height="16"/>
+    <input id="paused" name="paused" type="image" class="opt floatRight onloadEvent"
+  		title="click to pause messages refresh" src="../images/pause24.png"
+        onloadstart="togglePause(Boolean(this.value))"  value="true"
+        onclick="togglePause(event)"
+        ondblclick="togglePause(event)"
+        alt="click to refresh messages ONCE -- double click to cancel pause" width="16" height="16"/>
+  </div>
+  
+  <div class="floatClear marginBottom paddingTop" style="">
+  
+  <select name="pageList" id="pageList" class="floatRight marginLeft marginTopTiny marginBottomLess">
+    <option value="0" selected="selected">no active trace pages</option>
+  </select>
+<input type="image" id="pageListReset" src="../images/refresh-16.png" width="16" class="floatRight hidden"
+  		title="remove pages with no messages from list"/>
+    <input type="image" id="addedPageMsg" class="floatRight hidden"
+  		title="new messages for another page" src="../images/asterisk_orange.png" width="16" height="16"/>
+
+
+
+<label>goto: 
+<select name="messageList" id="messageList" class="goto" style="width:132px">
+  <option value="">no messages...</option>
+</select>
+</label>
+  <input type="button" value="top" onClick="goto(this)">
+  <input type="button" value="bottom" onClick="goto(this)">
+  <input type="button" value="Clear" onClick="clearMessages()">
+  
+  <div align="center">
+    <input name="hiddenCount" type="button" id="hiddenCount" value="Show # Pending Messages"
+    	class="smaller hidden"/>
+  </div>
+</div>
+  <pre id="message" class="floatLeft">loading...</pre>
+</div><!-- end controls layer -->
+<div id="messagesWrap" class="floatClear">
+  <pre id="messages"></pre>
+</div>
+</form>
+</body>
+</html>

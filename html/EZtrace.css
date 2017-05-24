@@ -1,0 +1,156 @@
+@charset "utf-8";
+body {
+	zzzbackground-color: #FEFEFA;	/* baby powder white */
+	overflow: scroll;
+	font-size: 11px;
+	padding-bottom: 200px;
+}
+body.loading:not(.live) {		/* hide while loading */
+	visibility: hidden;
+}
+#controls #message {
+	/* visibility: visible; */
+	/* overflow: hidden; */
+}
+#controls {
+	font-family: Arial;
+	position: fixed;
+	right: 0px;
+	left: 0px;
+	top: 0px;
+	margin: 0;
+	padding: 3px 4px 0;
+	border: 2px solid #C00;
+	background: #FEFEC8;
+	z-index: 1;
+}
+#controls pre {
+	color: #C00;
+	zfont-weight: bold;
+	font-size: 14px;
+	margin: 0 0 0 0;
+	zheight: 28px;
+	overflow: hidden;
+}
+#debugButtons {
+	right: 0px;
+	bottom: 0px;
+	z-index: 9;
+	background: cornsilk;
+}
+#pageList {
+	width: 192px;
+	font-size: 12px;
+	/* margin-top: -7px; */
+}
+ #functionList {
+	 width: 200px;
+	 font-size: 12px;
+}
+#messageList {
+	 width: 149px;
+	 font-size: 12px;
+}
+#scrollTo.hiddenOnly *:not(#showTraceOff) {
+	visibility: hidden;
+}
+#scrollTo.hiddenOnly:before {
+	padding-left: 33px;
+	padding-top: 3px;
+	content: "click to show hidden messages >>>";
+	position: absolute;
+}
+/*
+#pageListWrap:not(.showingOff) #messages .hide,
+#pageListWrap:not(.hidingOff) #hidingOff,
+#pageListWrap:not(.showingOff) #showingOff {
+*/
+#messages:not(.showingOff):not(.showingFn) .traceOff {
+	display: none;
+}
+#messages .traceOff {
+	background-color: #f0f0f0;
+	opacity: .6;
+}
+
+fieldset {
+	margin-top: -4px;
+	padding-bottom: 4px;
+	padding-top: 2px;
+	margin-bottom: 0px;
+}
+#filterNote {
+	min-width: 75px;
+	display: inline-block;
+}
+#filterWrap:not(.visible) #filterBtn {
+	margin-top: -16px;
+	display: inherit;
+	margin-left: 25px;
+}
+#messagesWrap {
+	overflow: auto;
+}
+
+pre#trace * {
+	font-family: monospace;
+	font-size: 10px;
+}
+h2, #trace {
+	margin: 0;
+}
+#messagesWrap details {
+	white-space: pre;
+	font-family: monospace;
+}
+h2, details summary {
+	font-size: 110%;
+	font-weight: bold;
+	margin-top: 4px;
+	/* background-color: #FFFFB4; */
+}
+option.highlight,
+a.highlight + h2,
+a.highlight + details summary {
+  	color: red;
+	background-color: #FCEBCB;
+}
+#messagesWrap details summary i {
+	background-color: #ff9;
+}
+body:not(.loading) #filterBtn input {
+ 	visibility:visible;
+ 	/* display:inline-block; */
+}
+body:not(.loading) #filterWrap:not(.visible) #filterBtn:after {
+	content: "<<< click for more filter options";
+	position: absolute;
+	width: 200px;
+	height: 18px;
+	visibility: visible;
+	z-index: -9;		/* only shows when #filterWrap hidden */
+}
+#deleteTraceUpdates {
+	position: absolute;
+	width: 200px;
+	height: 18px;
+	right: 45px;
+	top: 46px;
+}
+#deleteDisplayerUpdates {
+	position: absolute;
+	width: 200px;
+	height: 18px;
+	right: 45px;
+	top: 58px;
+}
+#deleteTraceUpdates:hover,
+#deleteDisplayerUpdates:hover {
+  	text-decoration: underline;
+}
+#filterWrap.visible + #deleteTraceUpdates,
+#filterWrap.visible + #deleteTraceUpdates + #deleteDisplayerUpdates {
+	display: none;
+}
+#debugButtons .tooltip {
+}

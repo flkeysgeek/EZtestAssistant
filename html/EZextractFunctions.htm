@@ -1,0 +1,560 @@
+<!DOCTYPE HTML SYSTEM "-//Macromedia//DWExtension layout-engine 5.0//dialog">
+<html>
+<head>
+<title>Extract Functions</title>
+<link href="EZextractFunctions.png" rel="panel icon" />
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<!--
+______________________________________________________________________________________________
+
+Display status, warnings, log and run javascript.
+Pseudo inspector: floater foramatted like inspector
+
+ISSUES:
+    count not updated when functions deleted or added from other list
+    at end of processing options saved ??
+______________________________________________________________________________________________
+-->
+<script type="text/javascript" src="EZextractFunctions.js"></script>
+
+<script type="text/javascript" src="../js/EZbasic.js"></script>
+<script type="text/javascript" src="../js/EZis.js"></script>
+<script type="text/javascript" src="../js/EZprototypes_only.js"></script>
+
+<script type="text/javascript" src="../js/EZdebug.js"></script>
+<script type="text/javascript" src="../js/EZadvanced.js"></script>
+
+<script type="text/javascript" src="../js/EZdate.js"></script>
+<script type="text/javascript" src="../js/EZstringify.js"></script>
+<script type="text/javascript" src="../js/EZtoString.js"></script>
+
+<script type="text/javascript" src="../js/EZcore_pruned.js"></script>
+<script type="text/javascript" src="../js/EZcommon.js"></script>
+<script type="text/javascript" src="../js/EZcommon_pruned.js"></script>
+<script type="text/javascript" src="../js/EZcommonParse.js"></script>
+<script type="text/javascript" src="../simulator/EZsimulator.js"></script>
+
+<script type="text/javascript" src="../js/EZsortable.js"></script>
+<link type="text/css" href="../css/EZcommon.css" rel="stylesheet">
+<style>
+body {
+	background-color: white;
+	padding-bottom: 100px;
+}
+#messages {
+	border-radius: 5px;
+	padding: 1px;
+	margin-top: 2px;
+}
+.prefix {
+	color: #00A82F;
+	font-weight: bold;
+	font-style: normal
+}
+#optionsLayer, 
+.extractedControls {
+	font-size:12px;
+}
+.extractedNode ul {
+	padding-bottom: 6px;
+	margin: 5px;
+}
+
+
+/* hide prototype and oops options when associated option not checked */
+.hidePrototype .prototype * {display: none}
+.hideOopsCall .oopsCallNote {visibility:hidden}
+.hideOpps .oopsNote * {display: none}
+
+a:hover {
+	text-decoration: underline;
+	color: #c00;
+}
+/* bold for checklist items */
+.checklist ul, ul.checklist {
+	zfont-weight: bold
+}
+/* nested functions: hide checkbox, cancel bold, italic */
+.checklist .nested {
+	font-style: italic;
+	font-weight: normal
+}
+.checklist .nested .drag-handle {
+	font-style: normal;
+}
+.checklist .nested input {
+	visibility: hidden;
+}
+/* hide inline code when not checked */
+.checklist .inlineCodeHide .inlineCode {
+	display: none
+}
+/* hide src/lineno when not checked except ALL li */
+.checklist .srcLinenoHide .srcLineno {
+	display: none
+}
+.checklist .srcLinenoHide .not-dragable .srcLineno {
+	display: inline
+}
+.extractedNode ul label {
+  font-size: 14px;
+}
+</style>
+<script type="text/javascript">
+</script>
+</head>
+<body class="floater" onLoad = "EZsetup()">
+<form name="theForm" method="post" action="" onSubmit="return false">
+<div id="messages" class="textBox floatClear">[messages]</div>
+  <span class="header"> Extract javascript functions to individual files to compare&nbsp;/ merge</span>
+  <span class="float-left floatClear marginRight">
+  &nbsp;
+  <input type="image" src="../images/help.png" title="Other RegEx Formats"
+		onclick="EZtoggle('help');location.hash='help_anchor'"/>
+  </span>
+  <table id="extract" border="0" cellpadding="0" cellspacing="0" 
+  class="shadowBlue margin-top margin-bottom">
+    <tbody>
+      <tr class="larger">
+        <td colspan="4">
+          <div class="floatLeft">
+            From.../
+  <select name="functionsFolder" id="functionsFolder" onChange="setFunctionFiles()">
+    <option value="Shared/EASY/js">revize/util/EASY</option>
+    <option value="revize">revize (DW ext)</option>
+    <option value="Shared/EZ/js" selected>EZ/js</option>
+    <option value="Shared/EZ/simulator">simulator</option>
+    <option value="ExtractFunctions">extracted</option>
+  </select>
+          </div>
+          <label class="floatLeft" style="font-size:12px">
+          <input name="hideCopy" type="checkbox" id="hideCopy" value="true" checked>
+          hide copy / .safe / .work </label>
+          <div class="floatRight">
+            To folder.../ExtractFunctions/...&nbsp;
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="4">
+          <hr>
+        </td>
+      </tr>
+      <tr>
+        <td valign="top" nowrap>
+          <select name="functionFiles" size="5" multiple id="functionFiles" onChange="selectFiles(this)">
+          </select>
+        </td>
+        <td width="25" valign="top">&nbsp;
+        </td>
+        <td valign="top">
+        <span class="header">Filters:</span>
+        <div class="marginLeftLots marginRightLots" style="font-size:12px">
+
+        <fieldset>
+        <legend>function name filter (String or RegEx)</legend>
+          applies to original function name <br>
+            <input name="filter" type="text" id="filter" size="16">
+            <span class="nowrap">
+              <label>
+                <input name="filterAction" type="radio" value="true">
+                include</label>
+              <label>
+                <input name="filterAction" type="radio" value="false" checked>
+                exclude&nbsp;&nbsp;&nbsp;</label>
+              </span>
+          </fieldset>
+          <label>
+            <input name="includePrototype" type="checkbox" id="includePrototype" onClick="showProtoNote()">
+            Include prototypes </label>
+          <br>
+          <label>
+            <input name="includeAnonymous" type="checkbox" id="includeAnonymous"
+            	onClick="if (this.checked) EZsetChecked('extractNested',true)">
+            Include anonymous </label>
+          <br>
+          <label>
+            <input name="extractNested" type="checkbox" id="extractNested"
+               	onClick="if (!this.checked) EZsetChecked('includeAnonymous',false)">
+            include nested functions (may not merge)</label>
+          <!--
+          <br>
+          <label>
+            <input name="extractlineCode" type="checkbox" id="extractlineCode">
+            extract  inline code between functions</label>
+          <br>
+          Sort Extracted Function List:
+          <label>
+            <input name="sortExtractedList" type="radio" checked>
+            yes</label>
+          <label>
+            <input type="radio" name="sortExtractedList">
+            no</label>
+          --> 
+          </div>
+        </td>
+        <td valign="top">
+          <input name="extractFolder" type="text" id="extractFolder" value="test" style="width:196px"
+          		onChange="setExtractFolder();">
+          <br>
+          <select name="extractedExisting" size="10" id="extractedExisting"  style="width:200px"
+          		onChange="changeExtractFolder(this)">
+          </select>
+          <br>
+          <label class="small">
+            <input name="deleteExisting" type="checkbox" id="deleteExisting" checked>
+          Delete folder before processing</label>
+          <div class="nowrap">
+            <input name="loadOptionsBtn" type="button" id="loadOptionsBtn" 
+            	value="load options" onClick="loadOptions()">
+            <input type="button" value="save options" onClick="saveOptions(g.optionsFile)">
+            <input name="deleteOptionsBtn" type="button" id="deleteOptionsBtn" 
+            	value="delete saved" onClick="deleteOptions()">
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <table id="optionsLayer" border="0" cellpadding="0" cellspacing="0" 
+  			class="shadowGreen hidePrototype hideOpps hideOopsCall marginTopMore margin-bottom">
+            <tbody>
+              <tr>
+                <td align="right" valign="top" class="header">
+                  Options<b>:&nbsp;</b>
+                </td>
+                <td colspan="2" valign="top" nowrap class="hidePrototype hideOpps hideOppsCall">
+                  <div class="floatLeft">
+                    <input name="includeDesc" type="checkbox" id="includeDesc" checked>
+                    Include description
+                    <label class="childContainer">
+                      <input name="updateDesc" type="checkbox" id="updateDesc" checked>
+                      update function name </label>
+                  </div>
+                </td>
+                <td>&nbsp;
+                </td>
+              </tr>
+              <tr>
+                <td height="40" align="right" valign="bottom" nowrap>
+                  <span class="sub-header">function prefix:</span>&nbsp;
+                </td>
+                <td height="40" colspan="3" valign="bottom" nowrap>
+                  <div>
+                    &nbsp;<b><i>old  prefix</i>:</b>
+                    <label>
+                      <input name="oldFuncPrefixEZ" type="checkbox" id="oldFuncPrefixEZ" 
+                      		onclick="showOppsCallNote(this)" value="EZ" checked>
+                      <i><b class="warn"><span class="prefix">EZ</span></b></i></label>
+                    <label>
+                      <input name="oldFuncPrefixRZ" type="checkbox" value="RZ" checked 
+                      		onclick="showOppsCallNote(this)" id="oldFuncPrefixRZ">
+                      <i><b class="warn"><span class="prefix">RZ</span></b></i></label>
+                    <label>
+                      <input type="checkbox" name="oldFuncPrefixOther" value="other" id="oldFuncPrefixOther">
+                      other:
+                      <input name="oldFuncPrefixOtherText" type="text" class="prefix" id="oldFuncPrefixOtherText"
+                      		onChange="showOppsCallNote(this)" style="width:30px">
+                    </label>
+                    &nbsp;&nbsp; <b>change to</b> 
+                    <span class="arrow">&rarr;</span>&nbsp;&nbsp;&nbsp;
+                    <label>
+                      <input type="checkbox" name="changePrefix" id="changePrefix" 
+                      		style="margin-left:-2px;margin-right:-2px;"></label>
+                    <b><i>new  prefix:</i></b>
+                    <label>
+                      <input type="radio" name="newFuncPrefix" value="EZ" checked  onclick="showOppsCallNote(this)">
+                      <i><b class="warn"><span class="prefix">EZ</span></b></i></label>
+                    <label>
+                      <input type="radio" name="newFuncPrefix" value="RZ" onclick="showOppsCallNote(this)">
+                      <i><b class="warn"><span class="prefix">RZ</span></b></i></label>
+                    <label>
+                      <input type="radio" name="newFuncPrefix" value="other">
+                      other:
+                      <input name="newFuncPrefixOtherText" type="text" class="prefix" id="newFuncPrefixOtherText"
+                      		onChange="showOppsCallNote(this)" style="width:30px">
+                    </label>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td align="right" valign="bottom" nowrap>
+                  <span class="sub-header">function statements:</span>&nbsp;
+                </td>
+                <td valign="bottom">
+                  <label>
+                    <input name="format" type="radio" onclick="showOopsNote()" value="keep" checked>
+                    Keep as  found</label>
+                </td>
+                <td valign="bottom">
+                  <label>
+                    <input name="format" type="radio" value="oops" onclick="showOopsNote()">
+                    *change to oops... function <i><b class="warn"><span class="prefix">EZ</span></b></i><i><b class="warn">myfunc</b></i>(...)</label>
+                </td>
+                <td valign="bottom">
+                  &nbsp;&nbsp;
+                  <label>
+                    <input type="radio" name="format" value="not" onclick="showOopsNote()">
+                    not oops... <b class="warn"><i><b class="warn"><span class="prefix">EZ</span></b>.myfunc</i></b>(...) = function(...)</label>
+                </td>
+              </tr>
+              <tr class="">
+                <td>&nbsp;
+                </td>
+                <td>&nbsp;
+                </td>
+                <td align="right" nowrap>
+                  <span class="arrow">&rarr;</span>&nbsp;<i><b class="warn"><span class="prefix">EZ</span>.myfunc</b></i>(...) = function(...)
+                </td>
+                <td align="right" nowrap>
+                  <span class="arrow">&rarr;</span> function <i><b class="warn"> <span class="prefix">EZ</span>myfunc</b></i>(...)
+                </td>
+              </tr>
+              <tr class="oopsNote showInDesign">
+                <td align="right" valign="middle">
+                  *oops function name: 
+                </td>
+                <td align="left" valign="top" nowrap>
+                  <div>
+                    <label>
+                      <input type="radio" name="oopsFuncName" value="keep">
+                      Keep as found</label>
+                  </div>
+                </td>
+                <td align="left" valign="top" nowrap>
+                  <div>
+                    <input name="oopsFuncName" type="radio" value="yes" checked>
+                    Add <span class="note"><b><i>function name</i></b></span>... <i><b>myfunc</b></i> = function(...)
+                  </div>
+                </td>
+                <td valign="middle" nowrap>
+                  &nbsp;&nbsp;
+                  <label>
+                    <input type="radio" name="oopsFuncName" value="no">
+                    Remove... </label>
+                  <i><b>myfunc</b></i> = function <b class="note"><i>myfunc</i></b>(...)
+                </td>
+              </tr>
+              <tr class="oopsNote showInDesign">
+                <td align="right" nowrap>&nbsp;
+                </td>
+                <td>&nbsp;
+                </td>
+                <td align="right" valign="middle" nowrap>
+                  <div>
+                    &nbsp; &nbsp;<span class="arrow">&rarr;</span><i><b>myfunc</b></i> = function <b class="note"><i>myfunc</i></b>(...)
+                  </div>
+                </td>
+                <td align="right">
+                  <div>
+                    <span class="arrow">&rarr;</span><i><b>&nbsp;myfunc</b></i> = functio<b><i>n</i></b>(...)
+                  </div>
+                </td>
+              </tr>
+              <tr id="functionNameDotAfter" class="oopsCallNote showInDesign">
+                <td align="right" valign="top">&nbsp;
+                </td>
+                <td colspan="3" align="center" valign="top">
+                  <div>
+                    &nbsp;dot after prefix:
+                    <label>
+                      <input name="dotAfterPrefix" type="radio" value="keep" checked>
+                      Keep as is </label>
+                    &nbsp;&nbsp;
+                    <label>
+                      <input name="dotAfterPrefix" type="radio" value="true">
+                      Add</label>
+                    &nbsp;&nbsp;
+                    <label>
+                      <input name="dotAfterPrefix" type="radio" value="false">
+                      Remove</label>
+                    &nbsp; &nbsp;&nbsp;&nbsp; e.g. <i><b class="warn"><span class="prefix">EZ</span></b></i><b>.</b>myfunc
+                  </div>
+                </td>
+              </tr>              
+              <tr>
+                <td align="right" nowrap>
+                  <span class="sub-header">function calls:&nbsp;</span>
+                </td>
+                <td nowrap>
+                  <label>
+                    <input name="formatCalls" type="radio" onClick="showOppsCallNote()" value="keep" checked>
+                    Keep as  found</label>
+                  &nbsp;
+                </td>
+                <td>
+                  <input name="formatCalls" type="radio" value="true" onClick="showOppsCallNote()">
+                  use new prefix if CALL begins with old prefix**
+                </td>
+                <td>
+                  &nbsp;&nbsp;
+                  <label>
+                    <input type="radio" name="formatCalls" value="false" onClick="showOppsCallNote()">
+                    remove dot after prefix</label>
+                </td>
+              </tr>
+              <tr id="functionCallDotAfter" class="oopsCallNote showInDesign">
+                <td align="right" valign="top" nowrap>&nbsp;
+                </td>
+                <td colspan="3" align="center" valign="middle" nowrap>
+                  **if function prefix matches any <i><b>old prefix</b></i> then: 
+                  &nbsp; <i><b class="warn"><span class="prefix">EZ</span><span class="warn">myfunc</span></b></i>()
+                  &nbsp;<span class="arrow">&rarr;</span> 
+                  &nbsp;<i><b><span class="warn"> 
+                  &nbsp;</span></b><b class="warn"><span class="prefix">EZ</span><span class="warn">.myfunc</span></b></i>
+                
+                </td>
+              </tr>
+              <tr class="prototype showInDesign">
+                <td align="right" valign="top" nowrap>&nbsp;
+                </td>
+                <td colspan="2" align="left" valign="top" nowrap>&nbsp;
+                </td>
+                <td align="left" valign="middle" nowrap>&nbsp;
+                </td>
+              </tr>
+              <tr class="prototype showInDesign">
+                <td align="right" valign="middle" nowrap>
+                  <span class="sub-header">prototype:</span>&nbsp;
+                </td>
+                <td colspan="2" align="left" valign="top" nowrap>
+                  <div>
+                    *function name
+                    <label>
+                      <input type="radio" name="prototypeName" value="keep">
+                      Keep as is</label>
+                    <label>
+                      <input name="prototypeName" type="radio" value="yes" checked>
+                      Add</label>
+                    <label>
+                      <input type="radio" name="prototypeName" value="no">
+                      Remove</label>
+                  </div>
+                </td>
+                <td align="left" valign="middle" nowrap>
+                  <div>
+                    &nbsp;&nbsp;e.g. String.prototype.<b><i>dup</i></b> = function <b class="note"><i>dup</i></b>()
+                  </div>
+                </td>
+              </tr>
+              <tr class="prototype showInDesign">
+                <td colspan="3" align="right" valign="middle">
+                  prefix *nane with  prototype class
+                  <label>
+                    <input type="checkbox" name="prototypePrefixKeep" value="keep">
+                    Keep if exists</label>
+                  <label>
+                    <input name="prototypePrefix" type="radio" value="yes" checked>
+                    Add</label>
+                  <label>
+                    <input name="prototypePrefix" type="radio" value="no">
+                    Remove</label>
+                </td>
+                <td align="left" valign="middle" nowrap>
+                  <div>
+                    &nbsp;&nbsp;e.g.<b> <i>String</i></b>.prototype.dup = function <b><i><span class="note">String</span></i></b>Dup()
+                  </div>
+                </td>
+              </tr>
+    </tbody>
+  </table>
+  <div class="floatClear">
+    <input type="image" src="../images/addressGo.gif"
+			onClick="extract()">
+    <span id="note" class="note margin-top larger"> select options - then click on  arrow to extract</span>
+  </div>
+  <div id="extractedLayer" class="floatClear checklist marginTopMore">
+    <div class="extractedNode shadowBlue srcLinenoHide inlineCodeHide floatLeft margin-left margin-right nowrap hidden">
+      <input class="floatRight" style="margin: 4px 2px 0 0;"
+      type="image" src="../images/close.png" 
+      		onClick="extractClose(getExtractList(this))">
+      <div class="subHeader floatleft">
+        From: /<span class="extractedFrom">...</span>
+      </div>
+      <div class="subHeader floatClear">
+        To: /ExtractFunctions/
+          <span class="extractedNote">...</span> &nbsp;&nbsp; count: <span class="extractedCount">0</span>
+      </div>
+      <div class="hidden extractedControls margin-top">
+        <div class="floatLeft">
+          <label class="inlineOption">
+            <input type="checkbox" class="margin-right showInlineCode"
+      		onClick="EZremoveClass(getExtractNode(this), 'inlineCodeHide', this.checked)">
+            show inline code</label>
+          <fieldset>
+          <legend>
+          <input type="button" value="merge checked" onClick="mergeChecked(this)">
+          </legend>
+          <label class="inlineOption">
+            <input type="checkbox" checked class="mergeInlineCode">
+            include inline code</label>
+          </fieldset>
+        </div>
+        <div class="floatRight">
+          <label>
+            <input type="checkbox" class="showSrcLineno"
+      		onClick="EZremoveClass(getExtractNode(this), 'srcLinenoHide', this.checked)">
+            show src / lineno</label>
+          <fieldset>
+          <legend>
+          <input type="button" value="compare highlighted" onClick="compareHighlight(this)">
+          </legend>
+          &nbsp;double-click to highlight<br>
+          </fieldset>
+        </div>
+        <br class="floatClear">
+        <b>Sort</b>
+        <label>
+          <input type="radio" class="sortBtn" value="none" 
+          	onClick="checklistSort(getExtractList(this))">
+          as shown </label>
+        <label>
+          <input type="radio" class="sortBtn" value="extract" checked
+          	onClick="checklistSort(getExtractList(this))">
+          extract order </label>
+        <label>
+          <input type="radio" class="sortBtn" value="name"
+          	onClick="checklistSort(getExtractList(this))">
+          function name</label>
+      </div>
+      <ul class="notDragging shadowTan" style="height:100%" onDblClick="toggleHighlight(this)">
+        <li class="dragable not-dragable"> <span class="drag-handle">&#9776;</span>
+          <label>
+            <input type="checkbox" value="*">
+            <span class="monospace pre srcLineno">ALL</span> <span class="name">&nbsp;<a class="floatRight" href="javascript:void(0)" onMouseDown="checklistDeleteChecked(this)">delete checked items</a></span> </label>
+          <i class="delete">&#10006;</i> </li>
+      </ul>
+    </div>
+  </div>
+</form>
+<a name="help_anchor"></a>
+<div id="help" class="hidden helpBox">
+TIPS:
+<p>To synchronize functions:</p>
+<ul>
+  <li>Extract functions from selected files for each source folder</li>
+  <li>From each group
+    <ul>
+      <li>Check All</li>
+      <li>ouble click ALL from each group of functions - </li>
+      </ul>
+  </li>
+  <li>click &quot;Compare&quot;
+from either group  
+  <ul>
+      <li>WinMerge opens for all files / functions</li>
+      <li> use to sync changes for each function</li>
+    </ul>
+  </li>
+  <li>Highlight ALL only from  each group 
+    <ul>
+      <li>click &quot;&nbsp;merge checked&quot;</li>
+      <li>click &quot;compare highlighted&quot;</li>
+      <li>WinMerge opens</li>
+      <li>merge changes into original file</li>
+      </ul>
+  </li>
+</ul>
+</div>
+<pre id="EZnone"></pre>
+</body>
+</html>

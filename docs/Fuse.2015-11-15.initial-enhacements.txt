@@ -1,0 +1,63 @@
+/**
+ * --------------------------------------------------------------------
+ * Additional and Expanded options 11-15-2015 -- Dave Otto EZ-coder.com
+ * --------------------------------------------------------------------
+ *		id 			allows multiple identifiers or "value" to return list value for
+ *					list of String.
+ *
+ *		include		Allows include values to be returned in supplemental Arrays as
+ *					property of the returned results Array instead of or in addition
+ *					to an item property.
+ *
+ *					The following addtional searcher values returned:
+ *						locations, offsets, matchedKeys*
+ *						* set by Fuse.search().analyzeText()
+ *
+ *		keys		Searches all Object keys if not specified.
+ *
+ *		callback	If specified, function called after search completes or is canceled.
+ *					Fuse.search() then returns after initializztion.
+ *
+ *		cancelable	If specified and true, search can be canceled by setting associated 
+ *					Fuse Object cancel property non-null. Requires callback and pauseTime.
+ *					The value of cancel property is retuned as cancel property of returned
+ *					results Array.
+ *					
+ *		cancelTime	optional number of milliseconds allowed before search quits and calls
+ *					the specified callback function. The search finishes analyizing all
+ *					specified keys for list item currently being processed.  If search is
+ *					canceled and sort will not start or terminates if started.  The values
+ *					of the matched items found are returned as specified by id option.
+ *
+ *		maxResults	optionally specifies the number of matched items found with any score
+ *					before quiting the search.
+ *
+ *		pauseTime	optionally defines number of milliseconds before search pauses to
+ *					allow other script processing e.g. keyboard or mouse event handlers.
+ *		
+ *		searchTime	If specified and true, sets searchTime property in results Array with 
+ *					number of milliseconds taken for search formated as: "n.mmm seconds".
+ * 
+ *		shouldSort	Support addtional following addtional sort options:
+ *						"id" or "keys" for Objecs and "value" for Strings
+ *
+ *		sort		Alternative name for sort option -- shouldSort has precedence
+ *
+ *		truncateSearchPattern
+ *					If specified and true, search pattern if truncated when it exceeds
+ *					maxPatternLength rather than throwing an exception.
+ *
+ *		sortKeys	Defines sort keys if different from search keys
+ *
+ *		Fuse.search([{String}|{input text}|{textarea} [, list] [, options])
+ *					searchPattern can be String, html text field or textarea
+ *					updated list Array (optionally) follows searchPattern
+ *					updated options Object follows searchPattern (or list if supplied)
+ *	
+ *	Created simple example html page to demonstrate all existing (except custom functions)
+ *	and new functionality.
+ *
+ *		-Uses Pure JavaScript -- no libraries to eliminate dependencies  
+ *		-Very little css to avoid clutter and keep focus on Fuse functionality
+ *					
+ */

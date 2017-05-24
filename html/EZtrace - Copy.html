@@ -1,0 +1,769 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>EZtrace</title>
+<link href="EZtrace.png" rel="panel icon" />
+
+<script type="text/javascript" src="../js/EZbase.js"></script>
+<script type="text/javascript" src="../js/EZprototypes_only.js"></script>
+<script type="text/javascript" src="../js/EZstringify.js"></script>
+<script type="text/javascript" src="../js/EZtoString.js"></script>
+<script type="text/javascript" src="../js/EZcore.js"></script>
+<script type="text/javascript" src="../js/EZcommon_min.js"></script>
+
+<link type="text/css" href="../css/EZcommon.css" rel="stylesheet">
+<link type="text/css" href="../css/EZtoString.css" rel="stylesheet">
+<style type="text/css">
+body {
+	background-color: #FFF;
+	overflow: scroll;
+	font-size: 11px;
+	padding-bottom: 200px;
+}
+#controls {
+	font-family: Arial;
+	position: fixed;
+	right: 0px;
+	left: 0px;
+	top: 0px;
+	margin: 0;
+	zheight: 38px;	/* if changed, check scrollTo(...) in goto() */
+	padding: 8px 5px 0;
+	border: 2px solid #C00;
+	background: #FEFEC8;
+}
+#controls pre {
+	color: #C00;
+	zfont-weight: bold;
+	font-size: 14px;
+	margin: 0 0 0 0;
+	zheight: 28px;
+	overflow: auto;
+}
+#select {
+	width: 140px;
+}
+fieldset {
+	margin-top: -4px;
+	padding-bottom: 4px;
+	padding-top: 2px;
+	margin-bottom: 0px;
+}
+#filterNote {
+	min-width: 75px;
+	display: inline-block;
+}
+#messagesWrap {
+	overflow: auto;
+}
+pre#trace * {
+	font-family: monospace;
+	font-size: 10px;
+}
+h2, #trace {
+	margin: 0;
+}
+h2 {
+	font-size: 110%;
+	margin-top: 4px;
+	background-color: #FFFFB4;
+}
+a.highlight + h2 {
+  	color: red;
+	background-color: #FCEBCB;
+}
+</style>
+<script type="text/javascript">
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+g = {};
+g.groups = {};
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function resize()
+{
+	g.messagesOffset = g.controls.clientHeight + 4;
+	g.messagesWrap.style.marginTop = g.messagesOffset + 'px';
+	g.messagesWrap.style.height = g.body.clientHeight - g.messagesOffset;
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function setup()
+{
+	/*-----------------------------------------------------------------------------
+	open code cloned from snippet_helper.js::RZtrace();
+	-----------------------------------------------------------------------------*/
+	if (!location.href.includes(document.referrer))
+	{
+		var MSIE = navigator.appVersion.indexOf('MSIE') != -1;
+		var isIEw3c = !MSIE && navigator.userAgent.indexOf('Trident') != -1 
+					&& navigator.appCodeName.indexOf('Mozilla') != -1;
+		
+		var features = 'width=610,height=970,directories=no,status=no,scrollbars=yes,'
+					 + 'location=no,menubar=no,resizable=yes,'
+					 
+					 + (!MSIE && !isIEw3c
+					 ? 'screenX=' + (screen.availWidth-625) + ',screenY=10'
+					 
+					 : 'left=' + (screen.availWidth-625) + ',top=10');
+		var win = window.open('EZtrace.html', 'EZtrace', features);
+		window.close();
+		return;
+	}
+	
+	g.body = EZ('body');
+	g.groupList = EZ('groupList');
+	
+	[].forEach.call(document.getElementsByTagName('*'), function(el)
+	{
+		if (el.id) g[el.id] = el;		
+		if (el.name) g[el.name] = el;	
+		
+		if (/^\s*\[.*?\]\s*$/.test(EZ.get(el)))
+			EZ.set(el,'');						//clear design values i.e. [...]
+	});
+	
+	EZ.displayMessage();
+	g.noMessages = g.groupList.options[0].text;	//default when no messages
+	resize();
+	
+	EZ.loadOptions('options');					//saved field values
+	var isDebug = EZsetDebugMode();
+	
+	if (isDebug)
+		g.trace = EZ.ls.get('.EZtrace.data') 	//saved global data
+	
+	g.trace = g.trace ||								
+	{											//initialize global data
+		activeGroup: '',
+		groups: {},
+		times: {								//times passes to html pages
+			displayTime: 0,						//global
+			groupss: {}							//individual group times
+		},								
+		options: {}								//options updated by us
+	}
+												//populate group dropdown
+	EZ.displayDropdown(g.groupList, Object.keys(g.groups), g.trace.activeGroup);
+
+	if (g.groupList.options.length == 0)
+		EZ.selectOptionAdd(g.groupList, 'no active trace pages');
+	
+	else if (g.groupList.selectedIndex != -1)
+		groupChange();							//group selected -- display messsages
+	
+	else 										//no group selected
+	{
+		EZ.selectOptionAdd(g.groupList, 'select page', '', true);
+		g.trace.activeGroup = '';
+	}
+	
+	if (g.filterText.value) filterChange(true);	//validate filter -- display warnings
+	
+	processQueue();
+	
+	EZ.event.add(g.filterText, 'onKeyup', filterChange, 100);
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function processEvent(evt)
+{
+	var el = evt.srcElement;
+	if (!el) return;
+	
+	if (EZ.hasClass(el, 'opt'))
+	{
+		EZ.updateOptions(el);
+	}
+	if (EZ.hasClass(el, 'goto'))
+		goto(el);
+	
+	else if (EZ.hasClass(el, 'format'))
+		formatChange(el);
+	
+	else if (EZ.hasClass(el, 'filter'))
+		filterChange(el);
+	
+	else if (el.id == 'groupList')	
+		groupChange(el);
+		
+	//EZ.event.cancel(evt,true);
+}
+/*---------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+function groupChange(el)
+{
+	var key = el ? EZ.get(el) : g.trace.activeGroup;
+	var group = g.trace.groups[key];
+	g.trace.activeGroup = key;
+	
+	setFilterOptions(group.filterOptions);
+	
+	g.messages.innerHTML = '';
+	EZ.clearList(g.messageList, 'fast');
+	group.messages.forEach(function()
+	{
+		displayMessage(message, group);			
+	});
+	displayMessageCount(group);
+	
+	/**
+	 *	
+	 */
+	 function setFilterOptions(filterOptions)
+	 {
+		 var tags = EZ('.filter');
+		 [].forEach.call(tags, function(el)
+		 {
+			 EZ.set(el, group.filterOptions[el.id]);
+		 });		 
+	 }
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function clearMessages(message, group)
+{
+	group = group || g.trace.activeGroup;	
+	group.counts = {};
+	group.messages = [];
+	group.messageList = [];
+	
+	if (message)
+	{
+		var msg = message.heading.substr(1) + ' @ ' + EZformatdate(message.time,'time');
+		group.status = msg;
+	}
+	if (group.key == g.activeGroup)
+	{
+		g.messages.innerHTML = '';
+		EZ.clearList(g.messageList, 'fast');
+		if (message)
+		{
+			EZ.displayMessage.blank = msg || 'cleared @ ' + EZformatdate('','time');
+			EZ.displayMessage();
+		}
+		g.messageList.options[0] = new Option(g.noMessages, '');
+		filterNote();
+	}
+}
+/*---------------------------------------------------------------------------
+Checks trace queue for new messages.  Only reads queue -- sets queueDisplayTime
+so pages adding messages can delete messages displayed.
+
+save queued messages and options for each group (html page)
+
+----------------------------------------------------------------------------*/
+function processQueue(isTimeout)
+{
+	if (isTimeout && g.queueTimeout) 
+		clearTimeout(g.queueTimeout);		
+	g.queueTimeout = 0;
+	
+	var traceUpdates = EZ.ls.get('.EZtrace.updates', {});		//updated by html pages
+	if (traceUpdates.updateTime > (g.trace.times.displayTime || 0))
+	{
+		var displayTime = g.trace.times.displayTime = new Date().getTime();
+		var groups = Object.keys(traceStatus).concat(Object.keys(g.groups)).removeDups();
+		groups.forEach(function(key)
+		{
+			var updates = traceUpdates.groups[key];
+			var group = g.trace.groups[key] ||
+			{
+				key: key,
+//				mode: false,
+				status: null,
+				counts: {},
+				options: {},
+				messageList: [],
+				hiddenMessages: []
+			}
+			if (!g.trace.times.groups[key]) 
+				g.trace.times.groups[key] = {};
+			if (!g.trace.times.groups[key].times) 
+				g.trace.times.groups[key].times = {};
+			var times = g.trace.times.groups[key].times;
+			
+			if (!updates)
+				return group.status = 'html page closed';
+			
+			if (!g.trace.groups[key])					//new group / html page for us
+			{
+				group = g.trace.groups[key] = group;
+				if (Object.keys(g.trace.groups).length == 1)
+					EZ.clearList(g.groupList, 'fast');
+			}
+			
+			if (updates.mode != undefined)				//check for trace mode change
+				group.mode = updates.mode;
+				
+			var optionsTime = '.times.options'.ov(updates, 0);
+			if (!group.options 
+			|| (times.options || 0) < optionsTime)		//check for updated trace options
+			{
+				var updatedOptions = EZ.ls.get(key.concat('.EZtrace.options'));
+				if (updatedOptions)
+				{
+					group.options = updatedOptions;		
+					times.options = optionsTime || updatedOptions.time;
+				}
+			}
+			if (!group.options) 
+				times.options = 0;						//request trace options from html page
+
+			if (displayTime > '.times.messages'.ov(updates, 0))
+				return;									//next page if no new messages
+	
+			 //----- process queued messages
+			var messages = EZ.ls.get(key.concat('.EZtrace.messages'), [])
+			messages.forEach(function(message)			
+			{
+				if (!message.time) return;
+				if (message.time < displayTime) return;
+				if (message.heading.substr(0,1) == '@')
+					clearMessages(message, group);
+				
+				group.messages.push(message);
+				
+				updateCounts(message, group);
+				processMessage(message, group);
+				displayMessage(message, group);
+			});
+			displayMessageCount(group);
+		});
+		
+		EZ.ls.set('.EZtrace.displayTimes', g.trace.times);	//pass updated times to all html pages
+		EZ.ls.set('.EZtrace.data', g.trace)					//save instance data -- development aid
+		goto()
+	}
+									
+	if (EZ.debugMode)				
+		EZ.displayMessage('...paused...')
+	else													//sch recheck if not paused
+		g.queueTimeout = setTimeout('processQueue(true)', EZ.get('refreshSeconds')*1000);
+}
+/*---------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+function processMessage(message, group)
+{
+	var mode = (message.mode || group.mode);
+	var time = EZformatdate(message.time,'time ms');
+	var heading = message.heading || '';
+	var text = message.text || '';
+	if (!heading && !text) return;				//bail if no text nor heading
+	
+	var selectValue = time;
+	var selectText = heading.replace(/[<]/g, '&lt;').replace(/\n/g, EZ.EOL).substr(0,50);
+	selectText = selectValue + (selectText ? ':    ' + selectText : '');
+	
+	message.selectOption = {value:selectValue, text:selectText};	
+	messageList.push(message.selectOption);
+	group.lastHash = selectValue;
+}
+/*---------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+function displayMessage(message, group)
+{
+	var mode = (message.mode || group.mode);
+	if (!mode || group != g.trace.activeGroup) 
+		return;									//bail if not activeGroup
+	
+	var tag = document.createElement('a');	
+	tag.setAttribute('id', time);
+	tag.setAttribute('name', time);
+	g.messages.appendChild(tag);
+	
+	var headTag = appendTag('h2', selectValue + ': ' + heading);	
+	var textTag = appendTag('div', text);		//even if blank for filter algorithm
+	 	
+ 	if (message.filtered)
+		EZ.addClass([headTag,headTag], 'hidden', isHidden && !g.filterDisabled);
+ 		
+	var selectOption = new Option(message.selectOption.text, message.selectOptionvalue);
+	g.messageList.options[g.messageList.options.length] = selectOption;
+	
+	applyFilter(headTag, group);
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function displayMessageCount(group)	
+{	
+	var count = group.counts.active;
+	var text = count == 1 ? '1 message' : 'goto message 1 - ' + count;
+	g.groupList.options[0].text = text;
+	
+	if (counts.hidden)
+		g.hiddenCount.value = 'show ' + counts.hidden + ' hidden messages'
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function appendTag(tag,text)	
+{	
+	if (!tag) return;
+	var tag = document.createElement(tag);
+	var textNode =  document.createTextNode(format(text || ''));
+	tag.appendChild(textNode);
+	g.messages.appendChild(tag);
+	return tag;
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function updateCounts(message, group)
+{
+	var mode = (message.mode || group.mode);
+	update('total');
+	
+	if (!mode)
+		update('hidden');
+	
+	else if (message.filtered)
+		update('filtered');
+	
+	else
+		update('displayed');
+	
+	function update(count)
+	{
+		group.counts[count] = group.counts[count] = 0;
+		group.counts[count]++;
+	}
+	
+	  //-----------------------------\\
+	 //----- update filter notes -----\\
+	//---------------------------------\\
+	var is = group.counts.active > 0 
+		  && group.counts.hidden > 0 
+		  && g.filter && !g.filterDisabled
+	EZ.removeClass(g.filterShowAll, 'hidden', is);
+
+	EZ.removeClass(g.filterWrap, 'dim', !g.filterDisabled);
+	EZ.removeClass(g.filterDisabledNote, 'hidden', g.filterDisabled);
+	
+	var msg = !g.filter || !g.filter.text ? ''
+			: group.counts.active == 0 ? 'no messages'
+			: group.counts.hidden == 0 ? 'none hidden'
+			: g.filter.show 
+			? (g.filterDisabled ? group.counts.active - group.counts.hidden + ' filtered'
+							 	: group.counts.active - group.counts.hidden + ' hidden  ')
+			: (g.filterDisabled ? group.counts.hidden + ' filtered'
+								: group.counts.hidden + ' hidden  ');
+	EZ.set(g.hideCountTag, msg);
+}
+/*---------------------------------------------------------------------------------------------
+	var key = g.trace.activeGroup;
+	var group = ;
+	if (g.trace.activeGroup)
+	{
+		group.filterOptions = getFilterOptions(g.trace.groups[key]);
+	}
+---------------------------------------------------------------------------------------------*/
+function filterChange(evt)
+{
+	var	group = g.trace.activeGroup;
+
+	if (g.filterTimeout) clearTimeout(g.filterTimeout);
+	g.filterTimeout = '';
+	
+	var isApplyNow = evt === true;
+	
+	//kill pending keyUp ??
+	
+	g.filterPending = {};
+	EZ(['.filter']).forEach(function(el)			//for all filter options . . . 
+	{
+		var key = el.name || el.id;
+		if (!key) return;
+		
+		key = key.substr(6,1).toLowerCase() + key.substr(7);
+		
+		var value = EZ.get(el);
+		g.filterPending[key] = value === 'true' ? true
+							 : value === 'false' ? false
+							 : value;
+	});
+
+	if (isApplyNow || group.counts.active == 0)
+		return filterApply();
+	
+	if (EZ.equals(g.filter, g.filterPending)) 		
+		return EZ.displayMessage();					//return if filter already applied
+	else
+	{
+		g.filterDisabled = false;
+		EZ.removeClass(g.filterWrap, 'dim');
+	}
+	EZ.displayMessage('filter change pending . . .');
+	g.filterTimeout = setTimeout('filterApply()', EZ.get('filterAutoApply')*1000);
+}
+/*---------------------------------------------------------------------------------------------
+called by button to toggle filter
+---------------------------------------------------------------------------------------------*/
+function filterToggle()
+{
+	g.filterDisabled = !g.filterDisabled;
+}
+/*---------------------------------------------------------------------------------------------
+Apply filter to message specified by headTag -OR- all messages if headTag not supplied.
+
+If filter is not valid, warning message is displayed.
+---------------------------------------------------------------------------------------------*/
+function filterApply(headTag, group)
+{
+	if (!headTag)							//called by apply button, toggle or change group
+	{
+		group = g.trace.activeGroup;
+		if (!g.filterPending.text)
+		{
+			g.filter = g.filterPending = g.filterDisabled = false;
+		}
+		else if (g.filterPending.regex)
+		{								
+			var e;
+			try
+			{								//create pattern	
+				var pattern = '/' + g.filterPending.text + '/'		
+							+ (g.filterPending.ignoreCase ? 'i' : '');
+				''.match(pattern);			//use empty string to validate pattern	
+				g.filterPattern = pattern;	//save pattern if valid
+			}
+			catch (e)
+			{
+				var msg = (e + '').replace(/SyntaxError\:?\s*/, '');
+				return EZ.displayMessage(msg, 30000);
+			}
+		}
+		g.filter = g.filterPending;			//update active filter to pending
+	}
+	
+	if (g.filter) 
+	{
+		saveFilterOptions();				
+		var hideCount = group.counts.hidden;
+		
+		group.counts.hidden = 0;
+		var tags = headTag || EZ(['h2'], g.messages);
+	
+		EZ.toArray(tags).forEach(function(headTag)
+		{									//for specified headTag or all messages
+			if (headTag.undefined) return;
+			var textTag = headTag.nextElementSibling;
+	
+			var searchStr = g.filter.what == 'head' ? headTag.innerHTML
+						  : g.filter.what == 'text' ? textTag.innerHTML
+						  : headTag.innerHTML + textTag.innerHTML;
+	
+			var isMatch = !g.filter.text ? true
+						: g.filter.regex ? searchStr.match(g.filterPattern)
+						: !g.filter.ignoreCase ? searchStr.includes(g.filter.text)
+						: searchStr.includesIgnoreCase(g.filter.text);
+	
+			var isHidden = (isMatch && !g.filter.show)
+						|| (!isMatch && g.filter.show);
+	
+			EZ.addClass([headTag,textTag], 'hidden', isHidden && !g.filterDisabled);
+			if (isHidden)
+				group.counts.hidden++;
+	
+		});
+		if (group.counts.hidden != hideCount)
+		{
+			var msg = !g.filter || group.counts.active == 0 ? ''
+					: !g.filter.text ? 'filter cleared'
+					:  g.filterDisabled ? 'filter disabled'
+					: 'filter applied';
+			EZ.displayMessage(msg, 10000)
+		}
+		filterNote();
+	}
+	/**
+	 *	
+	 */
+	 function saveFilterOptions()
+	 {
+		 group.filterOptions = {};
+		 var tags = EZ('.filter');
+		 [].forEach.call(tags, function(el)
+		 {
+			 group.filterOptions[el.id] = EZ.get(el);
+		 });
+	 }
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function goto(el)
+{
+	var hash = (el.value == 'top' && g.groupList.options.length > 1)
+			 ? g.groupList.options[1].value
+			 
+			 : (el.value == 'bottom' && g.groupList.options.length > 1)
+			 ? g.groupList.options[g.groupList.options.length-1].value
+			
+			 : (el.tagName == 'SELECT') ?  el.options[el.selectedIndex].value
+			 : ''
+	
+	if (!hash) return;
+	
+	EZ.scrollTo(hash, -g.messagesOffset-10);
+//	if (/(top|bottom)/.test(el.value))
+//		g.groupList.selectedIndex = 0;
+	
+	setTimeout(function(){g.groupList.selectedIndex = 0}, 10000);
+	//setTimeout("window.scrollBy(0,-g.messagesOffset-10)",500);
+	
+	EZ.removeClass(goto.highlight, 'highlight');
+	el = document.getElementById(hash);
+	if (el)
+	{
+		goto.highlight = el;
+		EZ.addClass(el, 'highlight');
+	}
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function formatChange()
+{
+	if (group.counts.active <= 0) return;
+	EZ(['h2','div'], g.messages).forEach(function(el)
+	{
+		el.innerHTML = format(el.innerHTML);
+	});
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+function format(str)
+{
+	str = (g.showSpaces.checked)
+		? str.replace(/ /g, EZ.DOT)
+		: str.replace(RegExp(EZ.DOT, 'g'), ' ');
+		
+	str = (g.showNewlines.checked)
+		? str.replace(/\n/g, EZ.EOL + '\n')
+		: str.replace(RegExp(EZ.EOL, 'g'), '');
+		
+	return str;
+}
+/*---------------------------------------------------------------------------------------------
+TODO:
+---------------------------------------------------------------------------------------------*/
+function changeSettings(el)
+{
+	processQueue();
+}
+/*---------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------*/
+</script>
+</head>
+<body onLoad="setup()" onResize="resize()">
+<a name="top" id="top"></a>
+<div id="controls" style="" onChange="processEvent(event)">
+  <form style="float:left">
+	<input type="button" value="top" onClick="goto(this)">
+    <input type="button" value="bottom" onClick="goto(this)">
+    <select name="messageList" id="messageList" class="goto">
+      <option value="">no messages...</option>
+    </select>
+    <br>
+    <label>
+      <input type="checkbox" name="showSpaces" id="showSpaces" class="format opt">
+      show spaces</label>
+    <input type="checkbox" name="showNewlines" id="showNewlines" class="format opt">
+    show newlines
+    </label>
+    <input type="button" value="Clear" onClick="clearMessages()">
+  </form>
+  <fieldset id="filterWrap" class="floatLeft" style="margin-top: -4px">
+    <legend>filter
+      <select name="filterWhat" id="filterWhat" class="filter opt">
+      <option value="head" selected>headings</option><option value="text">msg text</option>
+        <option value="both">both</option>
+      </select>&nbsp;
+	  <label>
+        <input name="filterIgnoreCase" type="checkbox" class="filter opt" 
+      	  id="filterIgnoreCase" value="true" checked="checked" />
+		ignore case</label><label>
+      <input name="filterRegex" type="checkbox" class="filter opt" 
+      	id="filterRegex" value="true">
+       regex</label>&nbsp;&nbsp;
+        <b id="filterDisabledNote" class="hidden errorNote">Disabled</b>
+        <a href="javascript:void(filterToggle()" id="filterShowAll"
+         class="hidden">show all</a>
+    </legend>
+    <input type="text" name="filterText" id="filterText" class="filter opt"
+        onChange="//filterChange()"
+        onKeyDown="if (event.keyCode == 13) filterChange(true)" />
+    <img src="../images/go.png" width="16" height="16" style="vertical-align: middle;"
+      	onClick="filterChange(true)"/>
+    <select name="filterShow" id="filterShow" class="filter opt">
+      <option value="true" selected>show</option>
+      <option value="false">hide</option>
+    </select>
+    &nbsp;<a href="javascript:void(filterToggle())" id="hideCountTag">[# filtered]</a>
+  </fieldset>
+  <div class="floatRight" style="width:18px;" align="center">
+    <img src="../images/settings16.png" width="16" title="settings"
+  		onClick="EZtoggle('settingsPopup')"/> 
+    <img src="../images/debug16.png" width="16" title="debug" class="margin-top"
+  		onClick="EZsetDebugMode(this)"/>
+    <div id="settingsPopup" class="helpBox hidden designMoveDownLots" 
+  	style="position:absolute;right: 5px;top: 3px;">
+    <img class="floatRight" src="../images/close.png" 
+      onClick="this.parentNode.style.display='none'" style="margin:0" /> 
+    <h2>trace settings (not saved)</h2>
+    <table width="80%" border="0" align="center" cellpadding="3" cellspacing="3">
+      <tbody>
+        <tr>
+          <td align="right" valign="middle" nowrap="nowrap">
+            refresh messages
+          </td>
+          <td valign="middle" nowrap="nowrap">
+            every 
+            <input name="refreshSeconds" type="text" class="opt narrowVery" id="refreshSeconds" value="1" />
+            seconds
+          </td>
+        </tr>
+        <tr>
+          <td align="right" valign="top" nowrap="nowrap">
+            filter timers:
+          </td>
+          <td valign="top" nowrap="nowrap">
+            auto apply 
+           
+            <input name="filterAutoApply" type="text" class="opt narrowVery" id="filterAutoApply" value="5" />
+seconds
+          <br />
+          after no filter change
+          </td>
+        </tr>
+        <tr>
+          <td align="right" valign="middle" nowrap="nowrap">&nbsp;
+          </td>
+          <td valign="middle" nowrap="nowrap">&nbsp;
+          </td>
+        </tr>
+        <tr>
+          <td align="right" valign="middle" nowrap="nowrap">&nbsp;
+          </td>
+          <td valign="middle" nowrap="nowrap">&nbsp;
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  </div>
+  <div class="floatClear marginBottom paddingTop" style="">
+  <select name="groupList" id="groupList" class="floatRight paddingBottom"
+  	onchange="groupChange(this)">
+    <option value="0">EZtest_assistant</option>
+    <option value="1">EZregex</option>
+  </select>
+  <pre id="message" class="floatLeft">loading...</pre>
+  <div align="center">
+    <input name="hiddenCount" type="button" id="hiddenCount" value="Show 0 Pending Messages" />
+  </div>
+</div>
+</div>
+<div id="messages" class="floatClear">
+  <pre id="trace"></pre>
+</div>
+</body>
+</html>
