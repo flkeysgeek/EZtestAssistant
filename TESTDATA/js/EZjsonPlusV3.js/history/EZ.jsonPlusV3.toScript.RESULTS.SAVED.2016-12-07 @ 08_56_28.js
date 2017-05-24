@@ -1,0 +1,22 @@
+EZ.test.savedResults=		//Saved @ 12-07-2016 08:56:28 am
+[
+	''
+	+ '{\n'
+	+ '    ok: true,\n'
+	+ '    testno: 1,\n'
+	+ '    id: "arg1=1st arg (json):[\\n    {\\n        \\"@JSON_escapeMarker@\\": \\"$.0=new Date(\'11/06/2016\')\\"\\n    }\\n],arg2=2nd arg (options):,note:",\n'
+	+ '    note: "<b>no errors reported</b>\\n1st actual return argument set to <cite>returned value</cite>\\n2nd actual return argument set to <cite>returned lists</cite>",\n'
+	+ '    warn: "",\n'
+	+ '    actual: {\n'
+	+ '        0: "\\t\'\'\\n\\t+ \'[\\\\n\'\\n\\t+ \'    {\\\\n\'\\n\\t+ \'        \\"@JSON_escapeMarker@\\": \\"$.0=new Date(\\\\\'11/06/2016\\\\\')\\"\\\\n\'\\n\\t+ \'    }\\\\n\'\\n\\t+ \']\'",\n'
+	+ '        1: "no returned lists",\n'
+	+ '        results: "\\t\'\'\\n\\t+ \'[\\\\n\'\\n\\t+ \'    {\\\\n\'\\n\\t+ \'        \\"@JSON_escapeMarker@\\": \\"$.0=new Date(\\\\\'11/06/2016\\\\\')\\"\\\\n\'\\n\\t+ \'    }\\\\n\'\\n\\t+ \']\'"\n'
+	+ '    },\n'
+	+ '    expected: {\n'
+	+ '        0: "\\t\'\'\\n\\t+ \'[\\\\n\'\\n\\t+ \'    {\\\\n\'\\n\\t+ \'        \\"@JSON_escapeMarker@\\": \\"$.0=new Date(\\\\\'11/06/2016\\\\\')\\"\\\\n\'\\n\\t+ \'    }\\\\n\'\\n\\t+ \']\'",\n'
+	+ '        1: "no returned lists",\n'
+	+ '        results: "\\t\'\'\\n\\t+ \'[\\\\n\'\\n\\t+ \'    {\\\\n\'\\n\\t+ \'        \\"@JSON_escapeMarker@\\": \\"$.0=new Date(\\\\\'11/06/2016\\\\\')\\"\\\\n\'\\n\\t+ \'    }\\\\n\'\\n\\t+ \']\'"\n'
+	+ '    },\n'
+	+ '    saveDateTime: "12-07-2016 08:56:27 am"\n'
+	+ '}'
+]

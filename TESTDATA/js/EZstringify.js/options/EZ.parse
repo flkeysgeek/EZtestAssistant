@@ -1,0 +1,9 @@
+EZ.test.data.options=		//Saved @ 05-29-2016 09:46:57 am
+{
+    only: "1",
+    skip: "",
+    exFrom: "saved",
+    onlyList: [1],
+    skipList: [],
+    lastOks: ["05-29-2016 09:20:08am", false]
+}
